@@ -1,0 +1,24 @@
+{
+	"name": "@photographer-proof-hub/auth",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {},
+	"dependencies": {
+		"@photographer-proof-hub/db": "workspace:*",
+		"@photographer-proof-hub/env": "workspace:*",
+		"better-auth": "catalog:",
+		"dotenv": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@photographer-proof-hub/config": "workspace:*",
+		"typescript": "catalog:"
+	}
+}
