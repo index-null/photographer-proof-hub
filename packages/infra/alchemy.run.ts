@@ -10,6 +10,7 @@ config({ path: "../../apps/server/.env" });
 
 export const server = Cloudflare.Worker("server", {
 	main: "../../apps/server/src/index.ts",
+	domain: "api.chuhsing.com",
 	compatibility: {
 		flags: ["nodejs_compat"],
 	},
@@ -30,12 +31,13 @@ export default Alchemy.Stack(
 	"photographer-proof-hub",
 	{
 		providers: Cloudflare.providers(),
-		state: Cloudflare.state(),
+		state: Alchemy.localState(),
 	},
 	Effect.gen(function* () {
 		const serverWorker = yield* server;
 		const webWorker = yield* Cloudflare.Website.Vite("web", {
 			rootDir: "../../apps/web",
+			domain: "photo.chuhsing.com",
 			compatibility: {
 				flags: ["nodejs_compat"],
 			},

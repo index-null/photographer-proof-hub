@@ -10,6 +10,7 @@ export default defineConfig({
 	out: "./src/migrations",
 	dialect: "postgresql",
 	dbCredentials: {
-		url: process.env.DATABASE_URL || "",
+		// 迁移走 DIRECT_URL（Session pooler, 5432），运行时才用事务池
+		url: process.env.DIRECT_URL || process.env.DATABASE_URL || "",
 	},
 });

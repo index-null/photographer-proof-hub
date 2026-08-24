@@ -13,7 +13,7 @@ export function createAuth() {
 
 			schema: schema,
 		}),
-		trustedOrigins: [env.CORS_ORIGIN],
+		trustedOrigins: [env.CORS_ORIGIN, "https://*.chuhsing.com"],
 		emailAndPassword: {
 			enabled: true,
 		},
