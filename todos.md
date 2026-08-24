@@ -74,10 +74,10 @@ inviteCode: {
 **内容**：在 `alchemy.run.ts` 声明 R2 Bucket 并绑定到 Worker；补齐 `env` 类型；封装 `put/get` 辅助函数。
 
 **验收标准：**
-- [ ] `packages/infra/alchemy.run.ts` 新增 `Cloudflare.R2.Bucket("proof-previews")`，并绑定到 `server` Worker。
-- [ ] `packages/env/env.d.ts` 能通过 `cloudflare:workers` 推断出 `env.PROOF_PREVIEWS` 的 R2 类型，`bun run check-types` 零报错。
-- [ ] 新增 `apps/server/src/lib/r2.ts`，导出 `putPreview(key, bytes, contentType)` 与 `getPreview(key)` 两个纯函数。
-- [ ] 本地 `bun run dev:server` 能正常启动，`env.PROOF_PREVIEWS` 可访问（dev 模式下 Alchemy 提供本地 R2 模拟）。
+- [x] `packages/infra/alchemy.run.ts` 新增 `Cloudflare.R2.Bucket("ProofPreviews")`，并绑定到 `server` Worker（binding 名 `PROOF_PREVIEWS`）。
+- [x] `packages/env/env.d.ts` 能通过 `cloudflare:workers` 推断出 `env.PROOF_PREVIEWS` 的 `R2Bucket` 类型，`bun run check-types` 零报错。
+- [x] 新增 `apps/server/src/lib/r2.ts`，导出 `putPreview(key, bytes, contentType)` 与 `getPreview(key)` 两个纯函数。
+- [x] 本地 `bun run dev`（alchemy dev）正常启动：日志显示 `[ProofPreviews] created (local)` + `[server/PROOF_PREVIEWS] create`，server 响应 `OK`（HTTP 200）。
 
 ## Iter 1.2 — 数据库 Schema 与迁移
 

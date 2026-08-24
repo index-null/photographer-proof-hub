@@ -8,6 +8,8 @@ config({ path: "./.env" });
 config({ path: "../../apps/web/.env" });
 config({ path: "../../apps/server/.env" });
 
+export const ProofPreviews = Cloudflare.R2.Bucket("ProofPreviews");
+
 export const server = Cloudflare.Worker("server", {
 	main: "../../apps/server/src/index.ts",
 	domain: "api.chuhsing.com",
@@ -19,6 +21,7 @@ export const server = Cloudflare.Worker("server", {
 		CORS_ORIGIN: Config.string("CORS_ORIGIN"),
 		BETTER_AUTH_SECRET: Config.redacted("BETTER_AUTH_SECRET"),
 		BETTER_AUTH_URL: Cloudflare.Worker.URL,
+		PROOF_PREVIEWS: ProofPreviews,
 	},
 	dev: {
 		port: 3000,
