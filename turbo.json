@@ -33,6 +33,9 @@
 			"cache": false,
 			"persistent": true
 		},
+		"db:seed": {
+			"cache": false
+		},
 		"deploy": {
 			"cache": false,
 			"interactive": true

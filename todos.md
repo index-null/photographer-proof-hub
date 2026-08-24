@@ -84,21 +84,23 @@ inviteCode: {
 **内容**：在 `packages/db/src/schema/` 新增 `gallery.ts`、`photo.ts`、`share_link.ts`、`star.ts`、`comment.ts`、`invite_code.ts`，并建立 relations。
 
 **验收标准：**
-- [ ] 新增 6 张表：`gallery`、`photo`、`share_link`、`photo_star`、`gallery_comment`、`invite_code`，字段与上述数据模型一致。
-- [ ] `schema/index.ts` 导出全部新表 + relations（gallery → photo/shareLink；shareLink → star/comment；photo → star）；`auth.ts` 的 `user` 表新增 `inviteCodeId` 外键（`invite_code.id`）。
-- [ ] `bun run db:generate` 生成迁移文件，`bun run db:push` 成功写入 Supabase。
-- [ ] `bun run check-types` 零报错。
+- [x] 新增 6 张表：`gallery`、`photo`、`share_link`、`photo_star`、`gallery_comment`、`invite_code`，字段与上述数据模型一致。
+- [x] `schema/index.ts` 导出全部新表 + relations（gallery → photo/shareLink；shareLink → star/comment；photo → star）；`auth.ts` 的 `user` 表新增 `inviteCodeId` 外键（`invite_code.id`，`ON DELETE set null`）。
+- [x] 生成迁移文件 `src/migrations/0000_stormy_scarecrow.sql`，并 push 到 Supabase（6 新表 + `user.invite_code_id` 列 + 全部外键/索引）。
+- [x] `bun run check-types` 全包零报错；`bunx tsc -p packages/db` 零报错。
+
+> 注：`bun run db:generate` / `bun run db:push` 经 turbo 会被 `interactive: true` 拦截（非 TTY 环境报错），实际需在 `packages/db` 下直接 `bunx drizzle-kit generate` / `bunx drizzle-kit push --verbose` 执行。
 
 ## Iter 1.3 — 邀请码 Seed 脚本
 
 **内容**：新增 `packages/db/src/seed.ts`，通过 `bun run db:seed` 幂等写入若干内置邀请码。
 
 **验收标准：**
-- [ ] 新增 `packages/db/src/seed.ts` + `package.json` 的 `db:seed` 脚本；根 `package.json` 加 `db:seed` turbo 脚本。
-- [ ] seed 幂等：已存在的 `code` 跳过，重复执行不报错、不重复插入。
-- [ ] 内置 5 个邀请码（如 `PILOT-001` ~ `PILOT-005`），`maxUses=1`、`isActive=true`。
-- [ ] `bun run db:seed` 执行后，Supabase `invite_code` 表出现 5 条记录。
-- [ ] 邀请码明文仅存在于 seed 输入（文件/环境变量），不硬编码进业务代码路径。
+- [x] 新增 `packages/db/src/seed.ts` + db 包 `db:seed` 脚本；根 `package.json` 加 `db:seed` turbo 脚本 + `turbo.json` 注册 `db:seed` 任务（非 interactive）。
+- [x] seed 幂等：已存在的 `code` 跳过，重复执行不报错、不重复插入（二次运行 5 条全部 `[skip]`）。
+- [x] 内置 5 个邀请码（`PILOT-001` ~ `PILOT-005`），`maxUses=1`、`usedCount=0`、`isActive=true`。
+- [x] `bun run db:seed` 执行后，Supabase `invite_code` 表出现 5 条记录。
+- [x] 邀请码明文仅存在于 seed 输入（文件/环境变量），不硬编码进业务代码路径。
 
 ---
 

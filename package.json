@@ -38,6 +38,7 @@
 		"db:push": "turbo run db:push -F @photographer-proof-hub/db --",
 		"db:studio": "turbo run db:studio -F @photographer-proof-hub/db --",
 		"db:generate": "turbo run db:generate -F @photographer-proof-hub/db --",
+		"db:seed": "turbo run db:seed -F @photographer-proof-hub/db --",
 		"db:migrate": "turbo run db:migrate -F @photographer-proof-hub/db --",
 		"deploy": "turbo run deploy -F @photographer-proof-hub/infra --",
 		"destroy": "turbo run destroy -F @photographer-proof-hub/infra --",

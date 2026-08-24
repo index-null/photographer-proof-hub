@@ -1,12 +1,17 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+import { inviteCode } from "./invite_code";
+
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
+	inviteCodeId: text("invite_code_id").references(() => inviteCode.id, {
+		onDelete: "set null",
+	}),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
@@ -73,9 +78,17 @@ export const verification = pgTable(
 	(table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ many, one }) => ({
 	sessions: many(session),
 	accounts: many(account),
+	inviteCode: one(inviteCode, {
+		fields: [user.inviteCodeId],
+		references: [inviteCode.id],
+	}),
+}));
+
+export const inviteCodeRelations = relations(inviteCode, ({ many }) => ({
+	users: many(user),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
