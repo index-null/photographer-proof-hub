@@ -214,18 +214,25 @@ inviteCode: {
 **内容**：扩展 `_auth` 路由：项目列表页 + 新建项目表单（名称、描述、水印文字/颜色/透明度/大小/角度/间距 + 实时预览）。
 
 **验收标准：**
-- [ ] `/dashboard` 展示当前摄影师的全部 gallery，可新建/删除。
-- [ ] 新建表单含水印配置项（text/color/opacity/fontSize/rotation/gapX/gapY/enabled），并有一个小画布**实时预览水印平铺效果**。
-- [ ] 保存后 `gallery.watermark` 正确写入，刷新后回填。
-- [ ] 界面复用 `packages/ui` 现有组件（button/input/card/label 等），无新增 Emoji 图标（用 lucide-react）。
+- [x] `/dashboard` 展示当前摄影师的全部 gallery，可新建/删除。
+- [x] 新建表单含水印配置项（text/color/opacity/fontSize/rotation/gapX/gapY/enabled），并有一个小画布**实时预览水印平铺效果**。
+- [x] 保存后 `gallery.watermark` 正确写入，刷新后回填（list 由服务端按 userId 过滤返回并携带 watermark，刷新后稳定呈现）。
+- [x] 界面复用 `packages/ui` 现有组件（button/input/card/label 等），无新增 Emoji 图标（用 lucide-react）。
+
+**实现要点：**
+- 复用 `orpc.gallery.list` 查询 + `client.gallery.create` / `client.gallery.delete`（`useMutation` + `invalidateQueries`）。
+- 水印核心 `WatermarkConfig` 类型与 `drawWatermark`（平铺旋转）下沉到 `apps/web/src/utils/watermark.ts`，同时供 **Iter 3.2** 的 Canvas 压缩复用（已在 3.2 规划中提及该文件，此处理所应当提前落地）。
+- 实时预览组件 `apps/web/src/components/watermark-preview.tsx`：在模拟照片渐变背景上 `useEffect` 跟随配置平铺重绘。
+- 新建表单 `apps/web/src/components/create-gallery-dialog.tsx`：用 `react-form` 管理嵌套 watermark，滑块（opacity/字号/角度/间距）+ 颜色/开关，右栏实时预览；ESC / 点遮罩 / 关闭按钮均可关闭；删除走浏览器二次确认。
+- 删除与创建后通过 `orpc.gallery.list.queryOptions().queryKey` 失效刷新列表。
 
 ## Iter 3.2 — 批量上传（浏览器 Canvas 压缩 + 平铺水印）
 
-**内容**：实现 `apps/web/src/utils/watermark.ts`（Canvas 缩放 + 平铺水印 + 导出 JPEG）；上传页支持拖拽/多选 + 进度条。
+**内容**：在已落地的 `apps/web/src/utils/watermark.ts`（含 `drawWatermark` 平铺绘制）基础上，补充 Canvas 缩放 + JPEG 导出；上传页支持拖拽/多选 + 进度条。
 
 **验收标准：**
-- [ ] `watermark.ts` 输出函数：输入 `File + watermarkConfig`，返回 `Blob`（JPEG，长边 ≤ 1600px，quality ≈ 0.7）。
-- [ ] 平铺水印按 `gapX/gapY` 排布、`rotation` 旋转、`opacity` 透明，覆盖整图且裁剪不掉。
+- [ ] `watermark.ts` 输出函数：输入 `File + watermarkConfig`，返回 `Blob`（JPEG，长边 ≤ 1600px，quality ≈ 0.7）。`drawWatermark`（平铺旋转，Iter 3.1 已落地）在此直接复用。
+- [ ] 平铺水印按 `gapX/gapY` 排布、`rotation` 旋转、`opacity` 透明，覆盖整图且裁剪不掉（与预览保持一致算法）。
 - [ ] 上传页支持多选/拖拽，逐张走 `POST /api/upload`，展示进度与失败重试。
 - [ ] 实测：选 10 张本地原图 → 上传后 R2 只存低清水印版（单张 < 300KB），Supabase `photo` 记录齐全。
 - [ ] 上传中刷新页面不崩溃（上传状态隔离）。
