@@ -1,0 +1,13 @@
+---
+description: 开发接口结束，需要走http测试oRPC框架接口时
+alwaysApply: false
+enabled: true
+updatedAt: 2026-08-26T06:29:13.092Z
+provider: 
+---
+
+POST /rpc/<proc>
+Content-Type: application/json
+Cookie: better-auth.session_token=<token>
+
+{"json": { <业务入参，与 zod input 同构> }, "meta": []}

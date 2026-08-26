@@ -3,6 +3,7 @@ import type { RouterClient } from "@orpc/server";
 import { protectedProcedure, publicProcedure } from "../index";
 import { galleryRouter } from "./gallery";
 import { photoRouter } from "./photo";
+import { shareLinkRouter } from "./share_link";
 
 export const appRouter = {
 	healthCheck: publicProcedure.handler(() => {
@@ -16,6 +17,7 @@ export const appRouter = {
 	}),
 	gallery: galleryRouter,
 	photo: photoRouter,
+	shareLink: shareLinkRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

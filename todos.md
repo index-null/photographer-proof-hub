@@ -129,11 +129,20 @@ inviteCode: {
 **内容**：新增 `shareLink.create/get/list/disable`，提取码用 Web Crypto PBKDF2 哈希存储。
 
 **验收标准：**
-- [ ] `shareLink.create` 支持 `accessCode?`（可空）与 `expiresAt?`（可空），生成唯一 `slug`，返回完整分享 URL。
-- [ ] `accessCode` 只存 PBKDF2 哈希，明文不落库、不返回。
-- [ ] `shareLink.disable` 将 `isActive` 置 false；`shareLink.list` 返回某 gallery 全部链接及状态。
-- [ ] curl 实测：创建带码链接 → 关闭链接 → list 中 `isActive=false`。
-- [ ] `bun run check-types` 零报错。
+- [x] `shareLink.create` 支持 `accessCode?`（可空）与 `expiresAt?`（可空），生成唯一 `slug`，返回完整分享 URL。
+- [x] `accessCode` 只存 PBKDF2 哈希，明文不落库、不返回。
+- [x] `shareLink.disable` 将 `isActive` 置 false；`shareLink.list` 返回某 gallery 全部链接及状态。
+- [x] curl 实测：创建带码链接 → 关闭链接 → list 中 `isActive=false`。
+- [x] `bun run check-types` 零报错。
+
+**完成记录（实测结论）：**
+- 路由落地：`packages/api/src/routers/share_link.ts`（`create/get/list/disable`），挂载到 `appRouter.shareLink`；复用 `createContext` 注入的 `db` 与 `session`。
+- 提取码哈希：`packages/api/src/lib/access-code.ts`（Web Crypto PBKDF2，`salt:hash` 落库，明文不返回；`verifyAccessCode` 预留给 Iter 2.3 `guest.verify` 复用）。
+- slug 生成与分享 URL：`packages/api/src/lib/share.ts`（`generateSlug` base64url 16B；`buildShareUrl` 用 `env.CLIENT_BASE_URL` 拼 `/s/:slug`）。
+- **关键约束**：`CLIENT_BASE_URL` 在 `packages/infra/alchemy.run.ts` 新增为 Worker `var`，并写入 `apps/server/.env`（`http://localhost:3001`），否则 dev 下 only 返回 `/s/:slug` 相对路径；`context.env` 透传该值（`packages/api/src/context.ts`）。
+- **归属校验**：`create/list/get/disable` 均先校验 gallery 归属当前摄影师（`gallery.userId = session.user.id`），越权返回 404；`disable` 经 `shareLink ⋈ gallery` 联表条件更新。
+- 实测（oRPC client 端到端）：建 gallery → 带码建链接（`hasAccessCode:true`、`url=http://localhost:3001/s/...`、响应体**不含** `accessCodeHash`、可空码则 `hasAccessCode:false`）→ `disable` 后 `isActive:false` → `list` 同步反映。
+- 落地位置：`packages/api/src/routers/share_link.ts`、`packages/api/src/lib/{access-code,share}.ts`、`packages/api/src/context.ts`、`packages/infra/alchemy.run.ts`、`apps/server/.env`。
 
 ## Iter 2.3 — 客户侧免登录访问 + 图片鉴权读取
 

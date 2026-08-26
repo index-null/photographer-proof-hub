@@ -14,6 +14,8 @@ export async function createContext({ context }: CreateContextOptions) {
 		auth: null,
 		session,
 		db: createDb(),
+		// 仅透出分享链接拼装所需的客户端基址；Worker 其余绑定由各自包直接读取。
+		env: context.env as { CLIENT_BASE_URL?: string },
 	};
 }
 
