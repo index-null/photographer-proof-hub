@@ -44,12 +44,15 @@ export default function SignUpForm({
 
 			// 2. 注册：把邀请码一并提交，服务端钩子会原子消费并写入 inviteCodeId；
 			//    无有效码时整条注册被拒绝（无法绕过前端直连注册）。
+			// `inviteCode` 为一次性字段：better-auth 在 sign-up 的 Zod body 上以
+			// `ZodRecord` 透传（服务端钩子从 `context.body` 读取并原子消费），
+			// 但未纳入客户端 `signUp.email` 的推断类型，故在此以参数类型安全断言。
 			const result = await authClient.signUp.email({
 				email: value.email,
 				password: value.password,
 				name: value.name,
 				inviteCode: value.inviteCode,
-			});
+			} as Parameters<typeof authClient.signUp.email>[0]);
 			if (result.error) {
 				toast.error(result.error.message || "注册失败");
 				return;
