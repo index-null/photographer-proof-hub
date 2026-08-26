@@ -174,11 +174,36 @@ inviteCode: {
 **内容**：新增 `publicProcedure` `invite.verify(code)`；摄影师注册成功后在服务端消费邀请码（`usedCount + 1`、`user.inviteCodeId` 关联）。
 
 **验收标准：**
-- [ ] `invite.verify(code)` 校验：存在 → `isActive` → `usedCount < maxUses` → 未过期；返回 `{ valid, reason? }`。
-- [ ] 注册流程：Better Auth signUp 成功后，在服务端原子消费邀请码（`usedCount + 1`、`user.inviteCodeId` 指向该码）；消费失败则注册回滚。
-- [ ] 消费具备原子性（`usedCount < maxUses` 条件更新 / 事务），同一码不会超发。
-- [ ] curl 实测：有效码 → `verify` 通过 → 注册成功 → `user.inviteCodeId` 有值、`usedCount=1`；再用同一码 → 因超 `maxUses` 被拒。
-- [ ] `bun run check-types` 零报错。
+- [x] `invite.verify(code)` 校验：存在 → `isActive` → `usedCount < maxUses` → 未过期；返回 `{ valid, reason? }`。
+- [x] 注册流程：Better Auth signUp 成功后，在服务端原子消费邀请码（`usedCount + 1`、`user.inviteCodeId` 指向该码）；消费失败则注册回滚。
+- [x] 消费具备原子性（`usedCount < maxUses` 条件更新 / 事务），同一码不会超发。
+- [x] curl 实测：有效码 → `verify` 通过 → 注册成功 → `user.inviteCodeId` 有值、`usedCount=1`；再用同一码 → 因超 `maxUses` 被拒。
+- [x] `bun run check-types` 零报错。
+
+**完成记录（实测结论）：**
+- 新增 `packages/api/src/routers/invite.ts`（`verify` 仅保留预校验），挂载到 `appRouter.invite`；oRPC HTTP 路径为 `/rpc/invite/verify`。
+- `invite.verify(code)`（`publicProcedure`）仅做只读校验，返回 `{ valid, reason? }`；拒绝原因细分「不存在 / 已停用 / 已达上限 / 已过期」。
+- **强约束（核心）：消费逻辑下沉到 Better Auth 注册钩子**，彻底杜绝「绕过前端直连 `/api/auth/sign-up/email` 免码注册」——这是涉及真实 Cloudflare 费用的后台，必须服务端兜底。
+  - `packages/auth/src/index.ts` 注册 `databaseHooks.user.create.before`：在 sign-up 事务内、`user` 行插入**前**执行。
+    - 从 `context.body.inviteCode` 读取客户端提交的邀请码（Better Auth `signUp.email` 的 `z.record(z.string(), z.any())` 透传所有额外字段）。
+    - 缺失 → 抛 `APIError("BAD_REQUEST", 邀请码必填)`；存在但校验不过 → 抛 `APIError("FORBIDDEN", 细分原因)`。
+    - 校验通过则**原子预约**名额：单条 `UPDATE ... SET used_count = used_count + 1 WHERE code = ? AND is_active AND used_count < max_uses AND (expires_at IS NULL OR expires_at > now())`，数据库行级锁保证并发不超发；命中后把 `inviteCodeId` 注入返回的 `data`，随 `user` 行一并写入。
+    - 钩子抛错 → Better Auth 整条注册中止（`user` 永不被创建），无法绕过前端。
+  - 为使 Better Auth 真正持久化注入的 `inviteCodeId`，在 `betterAuth({ user: { additionalFields: { inviteCodeId: { type: "string", required: false, nullable: true } } } })` 声明该字段为一等用户列（其底层列 `invite_code_id` 早已存在于 `schema/auth.ts`）。
+  - `auth` 包补充 `drizzle-orm` 直接依赖（原仅经 `db` 包间接可达；Worker 打包按包解析模块，直接 import 必须声明，否则 `No such module "drizzle-orm"` 致 Worker 启动失败）。
+- **curl 端到端实测通过（dev 环境，真实 Supabase）：**
+  - 无邀请码直连 sign-up → `HTTP 400 {\"message\":\"邀请码必填\"}`（强约束生效）。
+  - `PILOT-001` verify `valid:true` → 带 `inviteCode:PILOT-001` sign-up → `HTTP 200` 且返回 `user.inviteCodeId` 有值；DB 复查 `user.invite_code_id` 已绑定、`invite_code.used_count=1`。
+  - 同一码再注册 → `HTTP 403 {\"message\":\"邀请码已被使用（已达使用上限）\"}`（不超发）。
+  - 无效码 `NOPE-999` 注册 → `HTTP 403 {\"message\":\"邀请码不存在\"}`。
+  - 因 oRPC RPC 序列化约定，curl 请求体需包 `{"json":{...}}` 信封（非裸对象）。
+- `bun run check-types` 全包零报错；`biome check` 零问题。
+
+**顺带补充（原属 Iter 3.4 范围，提前落地以使 2.4 端到端可用）：**
+- `apps/web/src/components/sign-up-form.tsx` 增加「Invite Code」必填项：提交前先 `client.invite.verify` 预校验（无效即时提示、不发起注册），通过后再 `authClient.signUp.email({ ..., inviteCode })` 提交，由服务端钩子原子消费并落库；已无前端 `consume` 调用（`invite.consume` 路由已移除，避免与钩子重复消费）。
+
+**后续可优化（非阻塞）：**
+- `packages/api/src/lib/access-code.ts:70` 存在一处与本次无关的预存类型告警（`Uint8Array<ArrayBufferLike>` 不兼容 `BufferSource`，TS 6.0 lib 变更导致），`bun run check-types` 不覆盖该文件故门禁仍绿；建议后续单独修一处类型转换。
 
 ---
 

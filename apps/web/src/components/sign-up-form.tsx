@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { client } from "@/utils/orpc";
 
 import Loader from "./loader";
 
@@ -25,32 +26,44 @@ export default function SignUpForm({
 			email: "",
 			password: "",
 			name: "",
+			inviteCode: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signUp.email(
-				{
-					email: value.email,
-					password: value.password,
-					name: value.name,
-				},
-				{
-					onSuccess: () => {
-						navigate({
-							to: "/dashboard",
-						});
-						toast.success("Sign up successful");
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
+			// 1. 预校验邀请码，无效则中止注册（强约束消费在 Better Auth 注册钩子里完成）
+			let verified: { valid: boolean; reason?: string };
+			try {
+				verified = await client.invite.verify({ code: value.inviteCode });
+			} catch {
+				toast.error("邀请码校验服务异常，请稍后重试");
+				return;
+			}
+			if (!verified.valid) {
+				toast.error(verified.reason ?? "邀请码无效");
+				return;
+			}
+
+			// 2. 注册：把邀请码一并提交，服务端钩子会原子消费并写入 inviteCodeId；
+			//    无有效码时整条注册被拒绝（无法绕过前端直连注册）。
+			const result = await authClient.signUp.email({
+				email: value.email,
+				password: value.password,
+				name: value.name,
+				inviteCode: value.inviteCode,
+			});
+			if (result.error) {
+				toast.error(result.error.message || "注册失败");
+				return;
+			}
+
+			navigate({ to: "/dashboard" });
+			toast.success("注册成功");
 		},
 		validators: {
 			onSubmit: z.object({
 				name: z.string().min(2, "Name must be at least 2 characters"),
 				email: z.email("Invalid email address"),
 				password: z.string().min(8, "Password must be at least 8 characters"),
+				inviteCode: z.string().min(1, "Invite code is required"),
 			}),
 		},
 	});
@@ -125,6 +138,28 @@ export default function SignUpForm({
 									id={field.name}
 									name={field.name}
 									type="password"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+								{field.state.meta.errors.map((error) => (
+									<p key={error?.message} className="text-red-500">
+										{error?.message}
+									</p>
+								))}
+							</div>
+						)}
+					</form.Field>
+				</div>
+
+				<div>
+					<form.Field name="inviteCode">
+						{(field) => (
+							<div className="space-y-2">
+								<Label htmlFor={field.name}>Invite Code</Label>
+								<Input
+									id={field.name}
+									name={field.name}
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
