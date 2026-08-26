@@ -10,6 +10,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { imageRoute } from "./routes/image";
+import { ownerImageRoute } from "./routes/owner-image";
 import { uploadRoute } from "./routes/upload";
 
 const app = new Hono();
@@ -48,6 +49,8 @@ app.use(
 app.on(["POST", "GET"], "/api/auth/*", (c) => createAuth().handler(c.req.raw));
 
 app.route("/api/upload", uploadRoute);
+// 必须先注册更具体的 /img/owner，避免被 /img/* 通配路由抢先匹配。
+app.route("/img/owner", ownerImageRoute);
 app.route("/img", imageRoute);
 
 export const apiHandler = new OpenAPIHandler(appRouter, {

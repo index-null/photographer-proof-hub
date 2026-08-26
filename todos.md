@@ -231,22 +231,33 @@ inviteCode: {
 **内容**：在已落地的 `apps/web/src/utils/watermark.ts`（含 `drawWatermark` 平铺绘制）基础上，补充 Canvas 缩放 + JPEG 导出；上传页支持拖拽/多选 + 进度条。
 
 **验收标准：**
-- [ ] `watermark.ts` 输出函数：输入 `File + watermarkConfig`，返回 `Blob`（JPEG，长边 ≤ 1600px，quality ≈ 0.7）。`drawWatermark`（平铺旋转，Iter 3.1 已落地）在此直接复用。
-- [ ] 平铺水印按 `gapX/gapY` 排布、`rotation` 旋转、`opacity` 透明，覆盖整图且裁剪不掉（与预览保持一致算法）。
-- [ ] 上传页支持多选/拖拽，逐张走 `POST /api/upload`，展示进度与失败重试。
-- [ ] 实测：选 10 张本地原图 → 上传后 R2 只存低清水印版（单张 < 300KB），Supabase `photo` 记录齐全。
-- [ ] 上传中刷新页面不崩溃（上传状态隔离）。
+- [x] `watermark.ts` 输出函数 `compressAndWatermark(file, config)`：输入 `File + watermarkConfig`，返回 `{ blob, width, height }`（JPEG，长边 ≤ 1600px，quality ≈ 0.7）。`drawWatermark`（平铺旋转，Iter 3.1 已落地）在此直接复用。
+- [x] 平铺水印按 `gapX/gapY` 排布、`rotation` 旋转、`opacity` 透明，覆盖整图且裁剪不掉（与预览保持一致算法）。
+- [x] 上传页支持多选/拖拽，逐张走 `POST /api/upload`，展示进度与失败重试。
+- [x] 上传中刷新页面不崩溃（上传状态隔离在组件内，对象 URL 卸载时回收）。
+- [ ] 实测：选 10 张本地原图 → 上传后 R2 只存低清水印版（单张 < 300KB），Supabase `photo` 记录齐全。（待手测，逻辑与 Iter 2.1 上传同源）
+
+**完成记录（实测结论）：**
+- 浏览器侧压缩：`apps/web/src/utils/watermark.ts` 新增 `compressAndWatermark` 与 `toJpegFile`。关键细节：用 `createImageBitmap(file, { imageOrientation: "from-image" })` 自动按 EXIF orientation 校正，避免手机/相机竖拍照片在 Canvas 被旋转（经 anysearch 核实为当前最佳实践）。长边 > 1600px 才缩放；平铺水印复用 `drawWatermark` 保证与预览一致。
+- 上传链路：`apps/web/src/lib/upload.ts` 用 `XMLHttpRequest`（fetch 无法监听上传进度）以 `multipart/form-data` POST `/api/upload`，携带 Cookie；`onprogress` 驱动进度条，失败可重试。
+- 页面：`apps/web/src/routes/_auth/gallery/$galleryId.tsx`（新增路由，自动进入 `routeTree.gen.ts`）。含拖拽/多选 dropzone、逐张队列（处理中/上传中/完成/失败 + 进度 + 重试/移除）、上传后即时预览 + 失效 `photo.list` 刷新网格。队列处理由 `useEffect` 监听 `queue` 触发，复用 `processingRef` 防止重入。
+- 入口联动：`dashboard.tsx` 的项目卡片标题与「上传 / 管理」链接至 `/gallery/$galleryId`。
+
+**顺带补全（原属 3.3，为使 3.2 详情页可用而提前落地）：**
+- 摄影师本人预览图读取：`apps/server/src/routes/owner-image.ts` 新增 `GET /img/owner/*`，登录态 + 归属校验后从 R2 读图（客户侧仍走 `GET /img/*` + viewToken）。`index.ts` 中**先于** `/img` 注册以免通配抢匹配。
+- `photo.delete`：新增 `packages/api/src/routers/photo.ts` 的 `delete`（`protectedProcedure`），校验归属后删元数据并回收 R2 对象（`env.PROOF_PREVIEWS.delete`），避免孤儿存储。
+- 图片网格 + 单张删除、分享链接创建/管理面板（见 Iter 3.3）一并实现于详情页。
 
 ## Iter 3.3 — 分享链接管理 + 标星清单导出
 
 **内容**：项目详情页：图片网格管理（排序/删除）、分享链接创建与管理、导出标星清单 CSV。
 
 **验收标准：**
-- [ ] 项目详情页展示全部预览图网格，可调整 `sortOrder`、删除单张。
-- [ ] 分享链接面板：可创建链接（含提取码、有效期设置）、复制链接、一键关闭、查看状态（有效/已关闭/已过期）。
-- [ ] 「导出标星清单」：拉取该 gallery 所有标星 → 前端拼 CSV（`originalFilename, 标星数, 留言, 客户标识, 时间`）→ 触发下载；CSV 用 Excel 打开不乱码（UTF-8 BOM）。
-- [ ] 导出清单与 Supabase 标星数据一致（随机标星 N 张后比对）。
-- [ ] `bun run check-types` 零报错。
+- [x] 项目详情页展示全部预览图网格（`ownerImageUrl` 经 `GET /img/owner/*` 读取），可删除单张（`client.photo.delete`）。
+- [ ] 调整 `sortOrder` 的拖拽排序——暂未做（当前按 `sortOrder, createdAt` 升序展示，删除可用）。
+- [x] 分享链接面板：可创建链接（含提取码、有效期天数设置）、复制链接、一键关闭、查看状态（有效/已关闭/已过期），复用 `shareLink.create/list/disable`。
+- [ ] 「导出标星清单」CSV：拉取该 gallery 所有标星 → 前端拼 CSV（UTF-8 BOM）→ 下载。待 Iter 4.2 标星数据落地后接入。
+- [x] `bun run check-types` / `biome` 零报错（web / api / server 均通过）。
 
 ## Iter 3.4 — 注册表单集成邀请码 + 后台邀请码管理
 

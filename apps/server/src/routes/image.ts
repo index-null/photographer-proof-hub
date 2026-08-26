@@ -60,7 +60,9 @@ imageRoute.get("/*", async (c) => {
 	}
 
 	// 3) 校验请求图片归属该链接的 gallery（防跨链接越权读图）
-	const key = c.req.param("*");
+	// 注意：Hono 在带前缀的 `*` 通配下 c.req.param("*") 返回 undefined，
+	// 改用 c.req.path 截取前缀拿到含斜杠的完整 key。
+	const key = c.req.path.replace(/^\/img\//, "");
 	if (!key) {
 		return c.json({ error: "NOT_FOUND" }, 404);
 	}

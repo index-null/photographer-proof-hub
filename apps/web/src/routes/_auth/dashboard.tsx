@@ -21,8 +21,14 @@ import {
 } from "@photographer-proof-hub/ui/components/empty";
 import { Skeleton } from "@photographer-proof-hub/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { ImageIcon, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+	ArrowRight,
+	ImageIcon,
+	MoreVertical,
+	Plus,
+	Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import CreateGalleryDialog from "@/components/create-gallery-dialog";
@@ -97,7 +103,15 @@ function RouteComponent() {
 					{galleries.map((g) => (
 						<Card key={g.id}>
 							<CardHeader>
-								<CardTitle className="pr-8">{g.name}</CardTitle>
+								<CardTitle className="pr-8">
+									<Link
+										to="/gallery/$galleryId"
+										params={{ galleryId: g.id }}
+										className="hover:underline"
+									>
+										{g.name}
+									</Link>
+								</CardTitle>
 								{g.description ? (
 									<CardDescription className="line-clamp-2">
 										{g.description}
@@ -149,6 +163,14 @@ function RouteComponent() {
 										无水印
 									</span>
 								)}
+								<Link
+									to="/gallery/$galleryId"
+									params={{ galleryId: g.id }}
+									className="mt-3 inline-flex items-center gap-1 text-primary text-sm hover:underline"
+								>
+									上传 / 管理
+									<ArrowRight className="size-4" />
+								</Link>
 							</CardContent>
 						</Card>
 					))}
