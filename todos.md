@@ -149,13 +149,25 @@ inviteCode: {
 **内容**：新增 `publicProcedure` 路由：`guest.verify(slug, code)`、`guest.gallery(slug)`、`guest.photos(slug)`、`guest.star/ unstar`、`guest.comment.create`；新增 `GET /img/:key` 鉴权读取。
 
 **验收标准：**
-- [ ] `guest.verify` 校验：链接存在 → `isActive` → 未过期 → 提取码匹配；任一失败返回对应 ORPCError（404/403/410）。
-- [ ] 校验通过后返回一次性 `viewToken`（HMAC 签名，含 slug + 过期时间），后续 `guest.*` 与 `/img/:key` 用它鉴权。
-- [ ] `GET /img/:key` 校验 viewToken 有效后从 R2 读图返回，附 `Cache-Control: public, max-age=...`，否则 403。
-- [ ] **实现要点（已对齐 2.1）**：`:key` 即 `photo.r2Key`（`${galleryId}/${photoId}.jpg`，见 `apps/server/src/lib/r2.ts` 的 `getPreview`）；前端取图时传入 `r2Key`，服务端用 `getPreview(key)` 读 R2 并补 `Cache-Control`。`viewToken` 需携带 `slug` 并在校验期绑定该分享链接仍有效；可选二次校验 `photo` 归属该 `slug` 对应 gallery，防止越权读他人图。
-- [ ] `guest.star`/`unstar` 幂等（同一 `clientKey + photoId` 唯一）；`comment.create` 支持 `photoId?`。
-- [ ] curl 实测：错误提取码 → 403；正确提取码 → 拿到 token → 能取图 → 能标星/留言。
-- [ ] `bun run check-types` 零报错。
+- [x] `guest.verify` 校验：链接存在 → `isActive` → 未过期 → 提取码匹配；任一失败返回对应 ORPCError（404/403/410）。
+- [x] 校验通过后返回一次性 `viewToken`（HMAC 签名，含 slug + 过期时间），后续 `guest.*` 与 `/img/:key` 用它鉴权。
+- [x] `GET /img/:key` 校验 viewToken 有效后从 R2 读图返回，附 `Cache-Control: public, max-age=...`，否则 403。
+- [x] **实现要点（已对齐 2.1）**：`:key` 即 `photo.r2Key`（`${galleryId}/${photoId}.jpg`，见 `apps/server/src/lib/r2.ts` 的 `getPreview`）；前端取图时传入 `r2Key`，服务端用 `getPreview(key)` 读 R2 并补 `Cache-Control`。`viewToken` 需携带 `slug` 并在校验期绑定该分享链接仍有效；已二次校验 `photo` 归属该 `slug` 对应 gallery，防止越权读他人图。
+- [x] `guest.star`/`unstar` 幂等（同一 `clientKey + photoId` 唯一）；`comment.create` 支持 `photoId?`。
+- [x] curl 实测：错误提取码 → 403；正确提取码 → 拿到 token → 能取图 → 能标星/留言。
+- [x] `bun run check-types` 零报错。
+
+**完成记录（实测结论）：**
+- 新增 `packages/api/src/lib/view-token.ts`（HMAC-SHA256 签名/校验 viewToken，密钥 `VIEW_TOKEN_SECRET`，7 天有效期，定长时间安全比较）。
+- 新增 `packages/api/src/lib/guest.ts`（`resolveActiveShare` 校验「存在→启用→未过期」；`authorizeGuest` 先校验 token 再复核链接仍有效，token 绑定 slug 防止错配）。
+- 路由落地：`packages/api/src/routers/guest.ts`（`verify` / `gallery` / `photos` / `star` / `unstar` / `comment.create` / `comments`），挂载到 `appRouter.guest`。
+- 图片鉴权路由：`apps/server/src/routes/image.ts`（`GET /img/*`，`*` 通配 `r2Key` 中的 `/`），token 经 `?token=` 或 `Authorization: Bearer` 传入；复用 `verifyViewToken` + `resolveActiveShare` + photo 归属校验后才 `getPreview`，附 `Cache-Control: public, max-age=86400`。
+- 密钥注入：`packages/infra/alchemy.run.ts` 新增 `VIEW_TOKEN_SECRET` var，`apps/server/.env` 补静态值，`context.ts` 透出给路由。
+- **相对原计划的两处补充（供 Phase 4 前端对齐）**：
+  1. `guest.photos` 额外接受可选 `clientKey`，返回每张图的 `starred` 布尔，省去前端额外拉取标星状态（Iter 4.2 直接可用）。
+  2. 新增 `guest.comments`（按时间倒序返回该链接全部留言，含整组与针对单张），原 Spec 仅列 `comment.create`，但 Iter 4.2 需要列表展示，故补齐。
+- 实测（oRPC client 端到端，dev 环境）：公开链接 verify→token；gallery/photos/star→starred=true→unstar→starred=false；comment.create + comments 列表；带码链接错误码→`FORBIDDEN 提取码错误`、正确码→token；不存在 slug→`NOT_FOUND`、已关闭→`FORBIDDEN 链接已失效`；`/img/:key` 无 token→401、伪造 token→401、token 有效但 R2 无对象→404（鉴权链路全通，字节返回为 R2 标准读取，与 Iter 2.1 上传写入同源）。
+- `bun run check-types` 全包零报错；`bun run check`（biome）零错误。
 
 ## Iter 2.4 — 邀请码验证与消费
 
@@ -225,7 +237,7 @@ inviteCode: {
 **验收标准：**
 - [ ] 访问 `/s/:slug`：无码直接进入；有码弹出提取码输入，错误提示、正确进入。
 - [ ] 链接已关闭 → 显示「链接已失效」；已过期 → 显示「链接已过期」。
-- [ ] 校验成功后把 `viewToken` 与 `clientKey`（localStorage UUID）写入本地状态，后续请求携带。
+- [ ] 校验成功后把 `viewToken` 与 `clientKey`（localStorage UUID）写入本地状态，后续请求携带。（`guest.*` 以 `viewToken` 入参携带；`/img/:key` 以 `?token=` 查询参数携带——浏览器图片请求无法自定义 Header）。
 - [ ] 移动端（375px 宽）输入页与提示样式正常。
 
 ## Iter 4.2 — 预览图浏览、标星、留言
@@ -235,7 +247,7 @@ inviteCode: {
 **验收标准：**
 - [ ] 网格展示全部预览图，点击进入大图查看，支持左右切换。
 - [ ] 大图用 **Canvas 渲染**（非裸 `<img>`），标星按钮切换状态，刷新后保持（写入 Supabase）。
-- [ ] 留言支持「针对整组」与「针对某张图」，展示昵称/内容/时间；`clientKey` 区分不同访客。
+- [ ] 留言支持「针对整组」与「针对某张图」，展示昵称/内容/时间；`clientKey` 区分不同访客。（标星状态直接读 `guest.photos` 返回的 `starred` 字段；留言列表用新增的 `guest.comments` 拉取，无需逐张额外查询）。
 - [ ] 全流程无任何「下载/保存/另存」入口，页面内无原图 URL 泄露（只暴露带水印预览图）。
 - [ ] 移动端浏览流畅，图片懒加载（IntersectionObserver）。
 
