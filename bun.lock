@@ -31,6 +31,7 @@
         "@photographer-proof-hub/env": "workspace:*",
         "better-auth": "catalog:",
         "dotenv": "catalog:",
+        "drizzle-orm": "^0.45.2",
         "hono": "catalog:",
         "zod": "catalog:",
       },
@@ -93,6 +94,7 @@
         "@photographer-proof-hub/db": "workspace:*",
         "@photographer-proof-hub/env": "workspace:*",
         "dotenv": "catalog:",
+        "drizzle-orm": "^0.45.2",
         "zod": "catalog:",
       },
       "devDependencies": {

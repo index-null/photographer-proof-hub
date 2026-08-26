@@ -1,4 +1,5 @@
 import { createAuth } from "@photographer-proof-hub/auth";
+import { createDb } from "@photographer-proof-hub/db";
 import type { Context as HonoContext } from "hono";
 
 export type CreateContextOptions = {
@@ -12,6 +13,7 @@ export async function createContext({ context }: CreateContextOptions) {
 	return {
 		auth: null,
 		session,
+		db: createDb(),
 	};
 }
 

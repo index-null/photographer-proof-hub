@@ -10,6 +10,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
+import { uploadRoute } from "./routes/upload";
+
 const app = new Hono();
 
 app.use(logger());
@@ -44,6 +46,8 @@ app.use(
 );
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => createAuth().handler(c.req.raw));
+
+app.route("/api/upload", uploadRoute);
 
 export const apiHandler = new OpenAPIHandler(appRouter, {
 	plugins: [

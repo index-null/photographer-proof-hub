@@ -19,6 +19,7 @@
 		"@photographer-proof-hub/db": "workspace:*",
 		"@photographer-proof-hub/env": "workspace:*",
 		"dotenv": "catalog:",
+		"drizzle-orm": "^0.45.2",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

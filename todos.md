@@ -111,11 +111,18 @@ inviteCode: {
 **内容**：新增 oRPC 路由（`protectedProcedure`）`gallery.create/list/get/update/delete`；新增独立 Hono 上传路由 `POST /api/upload`（multipart → R2 → 写 photo 元数据）。
 
 **验收标准：**
-- [ ] `packages/api/src/routers/` 新增 `gallery.ts`、`photo.ts`，挂载到 `appRouter`，类型经 `AppRouter` 传播到前端 `client`。
-- [ ] 上传路由 `POST /api/upload`（Hono，`c.req.formData()`）接收 `galleryId + file`，写入 R2（key = `${galleryId}/${photoId}.jpg`），并 `insert` photo 元数据；仅登录摄影师可调用。
-- [ ] 上传返回 `{ id, r2Key, originalFilename, width, height, size }`。
-- [ ] 用 curl 实测：创建 gallery → 上传一张图 → Supabase `photo` 表出现记录、R2 出现对应对象。
-- [ ] `bun run check-types` 零报错。
+- [x] `packages/api/src/routers/` 新增 `gallery.ts`、`photo.ts`，挂载到 `appRouter`，类型经 `AppRouter` 传播到前端 `client`。
+- [x] 上传路由 `POST /api/upload`（Hono，`c.req.formData()`）接收 `galleryId + file`，写入 R2（key = `${galleryId}/${photoId}.jpg`），并 `insert` photo 元数据；仅登录摄影师可调用。
+- [x] 上传返回 `{ id, r2Key, originalFilename, width, height, size }`。
+- [x] 用 curl 实测：创建 gallery → 上传一张图 → Supabase `photo` 表出现记录、R2 出现对应对象。
+- [x] `bun run check-types` 零报错。
+
+**完成记录（实测结论）：**
+- 路由落地：`gallery.ts`（`create/list/get/update/delete`）、`photo.ts`（`list`）；`createContext` 注入 `db`；`uploadRoute` 挂在 `/api/upload`。
+- **关键约束**：oRPC HTTP 路径用**斜杠**而非点号 —— 客户端 `RPCLink` 经 `toHttpPath` 自动转 `/rpc/gallery/create`，curl 实测也必须用斜杠（用 `gallery.create` 点号会 404）。`gallery`/`photo` 的嵌套对象会被拍平为两级路径。
+- **photo.id 必须显式等于 r2Key 中的 photoId**：drizzle 的 `$defaultFn(crypto.randomUUID)` 会另生成一个 id，导致 `photo.id` 与 `r2Key` 不一致；上传时在 `insert` 显式传入 `id: photoId` 解决（否则后续 `/img/:key` 与导出清单无法对应）。
+- **边界实测通过**：未登录上传 → 401；上传他人 gallery / 列他人 photo → 404（归属校验）；缺 `galleryId` → 400；>30MB → 413。
+- 落地位置：`packages/api/src/routers/{gallery,photo}.ts`、`apps/server/src/routes/upload.ts`、依赖补充 `drizzle-orm`（api/server 包）。
 
 ## Iter 2.2 — 分享链接管理（提取码 / 有效期 / 关闭）
 
@@ -136,6 +143,7 @@ inviteCode: {
 - [ ] `guest.verify` 校验：链接存在 → `isActive` → 未过期 → 提取码匹配；任一失败返回对应 ORPCError（404/403/410）。
 - [ ] 校验通过后返回一次性 `viewToken`（HMAC 签名，含 slug + 过期时间），后续 `guest.*` 与 `/img/:key` 用它鉴权。
 - [ ] `GET /img/:key` 校验 viewToken 有效后从 R2 读图返回，附 `Cache-Control: public, max-age=...`，否则 403。
+- [ ] **实现要点（已对齐 2.1）**：`:key` 即 `photo.r2Key`（`${galleryId}/${photoId}.jpg`，见 `apps/server/src/lib/r2.ts` 的 `getPreview`）；前端取图时传入 `r2Key`，服务端用 `getPreview(key)` 读 R2 并补 `Cache-Control`。`viewToken` 需携带 `slug` 并在校验期绑定该分享链接仍有效；可选二次校验 `photo` 归属该 `slug` 对应 gallery，防止越权读他人图。
 - [ ] `guest.star`/`unstar` 幂等（同一 `clientKey + photoId` 唯一）；`comment.create` 支持 `photoId?`。
 - [ ] curl 实测：错误提取码 → 403；正确提取码 → 拿到 token → 能取图 → 能标星/留言。
 - [ ] `bun run check-types` 零报错。
