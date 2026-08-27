@@ -1,16 +1,22 @@
-import { SiGithub, SiXiaohongshu } from "@icons-pack/react-simple-icons";
+import { SiTiktok, SiXiaohongshu } from "@icons-pack/react-simple-icons";
 import { cn } from "@photographer-proof-hub/ui/lib/utils";
 import { ArrowUpRight, type LucideIcon, Mail } from "lucide-react";
 
+import type { SocialLinkType } from "../../data";
+
 // Real brand logos via Simple Icons (lucide v1 dropped brand icons).
-type BrandIcon = LucideIcon | typeof SiGithub;
-const iconMap: Record<string, { Icon: BrandIcon; color?: string }> = {
-	Xiaohongshu: { Icon: SiXiaohongshu, color: "#FF2442" },
-	GitHub: { Icon: SiGithub },
-	"Contact me": { Icon: Mail },
+// Keyed by `SocialLink.type`, never by display title, so titles stay localizable.
+// NOTE: Simple Icons has no dedicated `Douyin` entry; Douyin and TikTok share the
+// exact same note glyph (ByteDance), so `SiTiktok` is the correct icon for 抖音.
+type BrandIcon = LucideIcon | typeof SiXiaohongshu | typeof SiTiktok;
+const iconMap: Record<SocialLinkType, { Icon: BrandIcon; color?: string }> = {
+	xiaohongshu: { Icon: SiXiaohongshu, color: "#FF2442" },
+	contact: { Icon: Mail },
+	douyin: { Icon: SiTiktok },
 };
 
 interface Props {
+	type: SocialLinkType;
 	title: string;
 	href: string;
 	className?: string;
@@ -20,8 +26,8 @@ interface Props {
  * Social/contact row with an arrow that swaps in on hover. Adapted from the
  * reference `ContactCard` (react-icons replaced with lucide-react).
  */
-const ContactCard = ({ title, href, className }: Props) => {
-	const { Icon, color } = iconMap[title] ?? { Icon: Mail };
+const ContactCard = ({ type, title, href, className }: Props) => {
+	const { Icon, color } = iconMap[type] ?? iconMap.contact;
 
 	return (
 		<a

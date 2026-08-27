@@ -3,7 +3,11 @@
  * Adapted from the reference `site.config.ts`. Photos point to the test
  * assets extracted into `apps/web/public/photos`.
  */
+export type SocialLinkType = "xiaohongshu" | "douyin" | "contact";
+
 export type SocialLink = {
+	/** Stable key used to pick the brand icon (not the display title). */
+	type: SocialLinkType;
 	title: string;
 	href: string;
 	primary?: boolean;
@@ -13,19 +17,28 @@ export const siteConfig = {
 	name: "小鱼泡泡",
 	websiteTitle: "小鱼泡泡的摄影站",
 	tagline: "Photography",
-	role: "Photographer",
-	bio: "A quiet study of light, land, and the spaces in between — where the ordinary is allowed to fall still and become extraordinary.",
+	role: "独立摄影师",
+	bio: "我是小鱼泡泡📸\n独立摄影师，主营婚礼、订婚、周岁纪实、个人写真跟拍。\n主打自然氛围感，全程耐心引导。\n您可在此网站线上选片，安心省心，期待定格你的珍贵瞬间。❤️",
 	initials: "鱼",
 	/** Personal intro avatar. */
 	avatar: "/bubble fish.webp",
 	socialLinks: [
-		{ title: "Xiaohongshu", href: "https://xhslink.cn/o/7zQSUc8912e" },
-		{ title: "GitHub", href: "https://github.com/index-null" },
 		{
-			title: "Contact me",
+			type: "xiaohongshu",
+			title: "小红书",
+			href: "https://xhslink.cn/o/7zQSUc8912e",
+		},
+		{
+			type: "contact",
+			title: "联系我",
 			href: "wechat://index_null",
 			/** If true, this link gets the primary button style. */
 			primary: true,
+		},
+		{
+			type: "douyin",
+			title: "抖音",
+			href: "https://www.iesdouyin.com/share/user/MS4wLjABAAAAzZdmGgwOjmL42tkLfaKuACV2Yoo6pIH6r1hs0PGH_98nJ7TDTjdlEUy1wj2Bh2oR?iid=MS4wLjABAAAAGhMHjq1zTsslxIDDam44U5kWZMGd6DPeGlPxDAUsb_qX3wdav9iSUIX5_xJEd7yW",
 		},
 	] satisfies SocialLink[],
 };

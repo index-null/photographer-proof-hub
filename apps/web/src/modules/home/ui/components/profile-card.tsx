@@ -12,7 +12,7 @@ const ProfileCard = () => {
 	return (
 		<div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
 			<div className="col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-2">
-				<div className="group relative flex h-full flex-col justify-between gap-6 rounded-xl bg-neutral-900 p-6 font-light text-white transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-neutral-800 lg:p-10 xl:gap-0">
+				<div className="group relative flex h-full flex-col justify-between gap-6 rounded-xl bg-neutral-900 p-6 font-light text-white transition-all duration-150 ease-emphasized hover:bg-neutral-800 lg:p-10 xl:gap-0">
 					<div className="flex items-center gap-4">
 						<Avatar
 							src={siteConfig.avatar}
@@ -27,7 +27,9 @@ const ProfileCard = () => {
 					</div>
 
 					<div className="lg:mt-4 xl:mt-0">
-						<p className="text-[15px] text-white/70">{siteConfig.bio}</p>
+						<p className="whitespace-pre-line text-[15px] text-white/70">
+							{siteConfig.bio}
+						</p>
 					</div>
 
 					<div className="absolute top-8 right-8 opacity-0 transition-all duration-300 ease-in-out group-hover:top-6 group-hover:right-6 group-hover:opacity-100">
@@ -39,7 +41,8 @@ const ProfileCard = () => {
 			<div className="col-span-1 flex flex-col justify-between gap-3 md:col-span-1 lg:col-span-1 xl:col-span-1">
 				{siteConfig.socialLinks.map((link) => (
 					<ContactCard
-						key={link.title}
+						key={link.type}
+						type={link.type}
 						title={link.title}
 						href={link.href}
 						{...(link.primary && {

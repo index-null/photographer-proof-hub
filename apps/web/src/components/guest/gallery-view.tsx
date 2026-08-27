@@ -1,6 +1,7 @@
 import { cn } from "@photographer-proof-hub/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { MessageSquare, Star } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Home, MessageSquare, Star } from "lucide-react";
 import { useMemo, useState } from "react";
 import { orpc } from "@/utils/orpc";
 import { CanvasImage } from "./canvas-image";
@@ -66,15 +67,24 @@ export function GalleryView({
 		<div className="mx-auto flex min-h-full max-w-3xl flex-col">
 			<header className="sticky top-0 z-10 border-border border-b bg-background/80 backdrop-blur-xl">
 				<div className="flex items-start justify-between gap-3 p-3">
-					<div className="min-w-0">
-						<h1 className="cn-font-heading truncate font-semibold text-base">
-							{gallery.name}
-						</h1>
-						{gallery.description ? (
-							<p className="truncate text-muted-foreground text-xs">
-								{gallery.description}
-							</p>
-						) : null}
+					<div className="flex min-w-0 items-center gap-2">
+						<Link
+							to="/"
+							aria-label="返回首页"
+							className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+						>
+							<Home className="size-4" />
+						</Link>
+						<div className="min-w-0">
+							<h1 className="cn-font-heading truncate font-semibold text-base">
+								{gallery.name}
+							</h1>
+							{gallery.description ? (
+								<p className="truncate text-muted-foreground text-xs">
+									{gallery.description}
+								</p>
+							) : null}
+						</div>
 					</div>
 					<div className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs">
 						<Star className="size-3.5 text-primary" />
