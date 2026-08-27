@@ -36,7 +36,7 @@ export default function SignInForm({
 						navigate({
 							to: "/dashboard",
 						});
-						toast.success("Sign in successful");
+						toast.success("登录成功");
 					},
 					onError: (error) => {
 						toast.error(error.error.message || error.error.statusText);
@@ -46,8 +46,8 @@ export default function SignInForm({
 		},
 		validators: {
 			onSubmit: z.object({
-				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
+				email: z.email("邮箱格式不正确"),
+				password: z.string().min(8, "密码至少需要 8 个字符"),
 			}),
 		},
 	});
@@ -58,7 +58,7 @@ export default function SignInForm({
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
+			<h1 className="mb-6 text-center font-bold text-3xl">欢迎回来</h1>
 
 			<form
 				onSubmit={(e) => {
@@ -72,7 +72,7 @@ export default function SignInForm({
 					<form.Field name="email">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Email</Label>
+								<Label htmlFor={field.name}>邮箱</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -95,7 +95,7 @@ export default function SignInForm({
 					<form.Field name="password">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Password</Label>
+								<Label htmlFor={field.name}>密码</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -126,7 +126,7 @@ export default function SignInForm({
 							className="w-full"
 							disabled={!canSubmit || isSubmitting}
 						>
-							{isSubmitting ? "Submitting..." : "Sign In"}
+							{isSubmitting ? "提交中..." : "登录"}
 						</Button>
 					)}
 				</form.Subscribe>
@@ -138,7 +138,7 @@ export default function SignInForm({
 					onClick={onSwitchToSignUp}
 					className="text-indigo-600 hover:text-indigo-800"
 				>
-					Need an account? Sign Up
+					还没有账号？立即注册
 				</Button>
 			</div>
 		</div>

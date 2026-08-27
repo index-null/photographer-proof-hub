@@ -63,10 +63,10 @@ export default function SignUpForm({
 		},
 		validators: {
 			onSubmit: z.object({
-				name: z.string().min(2, "Name must be at least 2 characters"),
-				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
-				inviteCode: z.string().min(1, "Invite code is required"),
+				name: z.string().min(2, "昵称至少需要 2 个字符"),
+				email: z.email("邮箱格式不正确"),
+				password: z.string().min(8, "密码至少需要 8 个字符"),
+				inviteCode: z.string().min(1, "请输入邀请码"),
 			}),
 		},
 	});
@@ -77,7 +77,7 @@ export default function SignUpForm({
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-6 text-center font-bold text-3xl">Create Account</h1>
+			<h1 className="mb-6 text-center font-bold text-3xl">创建账号</h1>
 
 			<form
 				onSubmit={(e) => {
@@ -91,7 +91,7 @@ export default function SignUpForm({
 					<form.Field name="name">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Name</Label>
+								<Label htmlFor={field.name}>昵称</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -113,7 +113,7 @@ export default function SignUpForm({
 					<form.Field name="email">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Email</Label>
+								<Label htmlFor={field.name}>邮箱</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -136,7 +136,7 @@ export default function SignUpForm({
 					<form.Field name="password">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Password</Label>
+								<Label htmlFor={field.name}>密码</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -159,7 +159,7 @@ export default function SignUpForm({
 					<form.Field name="inviteCode">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Invite Code</Label>
+								<Label htmlFor={field.name}>邀请码</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -189,7 +189,7 @@ export default function SignUpForm({
 							className="w-full"
 							disabled={!canSubmit || isSubmitting}
 						>
-							{isSubmitting ? "Submitting..." : "Sign Up"}
+							{isSubmitting ? "提交中..." : "注册"}
 						</Button>
 					)}
 				</form.Subscribe>
@@ -201,7 +201,7 @@ export default function SignUpForm({
 					onClick={onSwitchToSignIn}
 					className="text-indigo-600 hover:text-indigo-800"
 				>
-					Already have an account? Sign In
+					已有账号？前往登录
 				</Button>
 			</div>
 		</div>

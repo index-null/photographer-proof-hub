@@ -12,8 +12,8 @@ export default function Header() {
 	}
 
 	const links = [
-		{ to: "/", label: "Home" },
-		{ to: "/dashboard", label: "Dashboard" },
+		{ to: "/", label: "首页" },
+		{ to: "/dashboard", label: "工作台" },
 	] as const;
 
 	return (
