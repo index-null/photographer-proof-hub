@@ -1,50 +1,30 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-
-import { orpc } from "@/utils/orpc";
+import CollectionsHeading from "@/modules/home/ui/components/collections-heading";
+import Footer from "@/modules/home/ui/components/footer";
+import ProfileCard from "@/modules/home/ui/components/profile-card";
+import { CollectionsView } from "@/modules/home/ui/views/collections-view";
+import { SliderView } from "@/modules/home/ui/views/slider-view";
 
 export const Route = createFileRoute("/")({
 	component: HomeComponent,
 });
 
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
-
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
-
 function HomeComponent() {
-	const healthCheck = useQuery(orpc.healthCheck.queryOptions());
-
 	return (
-		<div className="container mx-auto max-w-3xl px-4 py-2">
-			<pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-			<div className="grid gap-6">
-				<section className="rounded-lg border p-4">
-					<h2 className="mb-2 font-medium">服务状态</h2>
-					<div className="flex items-center gap-2">
-						<div
-							className={`h-2 w-2 rounded-full ${healthCheck.data ? "bg-green-500" : "bg-red-500"}`}
-						/>
-						<span className="text-muted-foreground text-sm">
-							{healthCheck.isLoading
-								? "检测中..."
-								: healthCheck.data
-									? "已连接"
-									: "已断开"}
-						</span>
-					</div>
-				</section>
+		<div className="h-full overflow-y-auto bg-background">
+			<div className="mx-auto flex max-w-[1600px] flex-col gap-3 p-3 lg:flex-row">
+				{/* LEFT — fixed full-height photo carousel */}
+				<div className="h-[60vh] lg:sticky lg:top-3 lg:h-[calc(100svh-4.5rem)] lg:w-1/2">
+					<SliderView />
+				</div>
+
+				{/* RIGHT — scrollable content column */}
+				<div className="flex w-full flex-col gap-3 lg:w-1/2">
+					<ProfileCard />
+					<CollectionsHeading />
+					<CollectionsView />
+					<Footer />
+				</div>
 			</div>
 		</div>
 	);
