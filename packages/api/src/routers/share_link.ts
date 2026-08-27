@@ -5,7 +5,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../index";
 import { hashAccessCode } from "../lib/access-code";
-import { buildShareUrl, generateSlug } from "../lib/share";
+import { generateSlug } from "../lib/share";
 
 const linkIdSchema = z.object({ id: z.string().min(1) });
 
@@ -72,10 +72,6 @@ export const shareLinkRouter = {
 				id: created.id,
 				galleryId: created.galleryId,
 				slug: created.slug,
-				url: buildShareUrl(
-					context.env?.CLIENT_BASE_URL as string | undefined,
-					created.slug,
-				),
 				hasAccessCode: created.accessCodeHash !== null,
 				expiresAt: created.expiresAt,
 				isActive: created.isActive,
@@ -120,10 +116,6 @@ export const shareLinkRouter = {
 			return rows.map((row) => ({
 				...row,
 				hasAccessCode: row.hasAccessCode !== null,
-				url: buildShareUrl(
-					context.env?.CLIENT_BASE_URL as string | undefined,
-					row.slug,
-				),
 			}));
 		}),
 
@@ -159,10 +151,6 @@ export const shareLinkRouter = {
 				id: row.id,
 				galleryId: row.galleryId,
 				slug: row.slug,
-				url: buildShareUrl(
-					context.env?.CLIENT_BASE_URL as string | undefined,
-					row.slug,
-				),
 				hasAccessCode: row.accessCodeHash !== null,
 				expiresAt: row.expiresAt,
 				isActive: row.isActive,

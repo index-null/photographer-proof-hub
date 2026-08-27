@@ -22,7 +22,6 @@ export const server = Cloudflare.Worker("server", {
 	env: {
 		DATABASE_URL: Config.redacted("DATABASE_URL"),
 		CORS_ORIGIN: Config.string("CORS_ORIGIN"),
-		CLIENT_BASE_URL: Config.string("CLIENT_BASE_URL"),
 		BETTER_AUTH_SECRET: Config.redacted("BETTER_AUTH_SECRET"),
 		VIEW_TOKEN_SECRET: Config.redacted("VIEW_TOKEN_SECRET"),
 		BETTER_AUTH_URL: Cloudflare.Worker.URL,

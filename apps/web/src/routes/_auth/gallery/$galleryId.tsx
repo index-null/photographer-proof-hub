@@ -67,6 +67,12 @@ function ownerImageUrl(r2Key: string): string {
 	return `${base}/img/owner/${r2Key}`;
 }
 
+// 分享链接指向客户 H5（/s/:slug），与后台页面同源。直接基于当前运行域名拼装，
+// 由页面自身决定域名，dev 自动为 localhost、生产自动为线上域名，无需服务端基址。
+function clientShareUrl(slug: string): string {
+	return `${window.location.origin}/s/${slug}`;
+}
+
 function GalleryDetail() {
 	const { galleryId } = Route.useParams();
 	const queryClient = useQueryClient();
@@ -635,7 +641,7 @@ function SharePanel({
 	galleryId: string;
 	links: {
 		id: string;
-		url: string;
+		slug: string;
 		hasAccessCode: boolean;
 		isActive: boolean;
 		expiresAt: Date | null;
@@ -662,7 +668,7 @@ function SharePanel({
 					.queryKey,
 			});
 			linksQueryInvalidate();
-			void navigator.clipboard?.writeText(link.url);
+			void navigator.clipboard?.writeText(clientShareUrl(link.slug));
 			toast.success("分享链接已创建并复制");
 			setAccessCode("");
 			setExpiryDays("");
@@ -740,12 +746,14 @@ function SharePanel({
 							>
 								<div className="min-w-0 flex-1">
 									<div className="flex items-center gap-2">
-										<code className="truncate text-sm">{link.url}</code>
+										<code className="truncate text-sm">
+											{clientShareUrl(link.slug)}
+										</code>
 										<button
 											type="button"
 											aria-label="复制"
 											className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
-											onClick={() => copy(link.url)}
+											onClick={() => copy(clientShareUrl(link.slug))}
 										>
 											<Copy className="size-4" />
 										</button>
