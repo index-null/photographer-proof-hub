@@ -13,11 +13,9 @@ dotenv.config({ path: "../../apps/server/.env" });
 const url = process.env.DIRECT_URL || process.env.DATABASE_URL || "";
 
 const PILOT_CODES = [
-	{ code: "PILOT-001", note: "首批试点摄影师 1" },
-	{ code: "PILOT-002", note: "首批试点摄影师 2" },
-	{ code: "PILOT-003", note: "首批试点摄影师 3" },
-	{ code: "PILOT-004", note: "首批试点摄影师 4" },
-	{ code: "PILOT-005", note: "首批试点摄影师 5" },
+	{ code: "chuhsing-001", note: "内置邀请码 1" },
+	{ code: "chuhsing-002", note: "内置邀请码 2" },
+	{ code: "chuhsing-003", note: "内置邀请码 3" },
 ];
 
 async function main() {
