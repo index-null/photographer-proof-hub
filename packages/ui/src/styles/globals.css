@@ -30,7 +30,8 @@
 	--chart-3: oklch(0.546 0.245 262.881);
 	--chart-4: oklch(0.488 0.243 264.376);
 	--chart-5: oklch(0.424 0.199 265.638);
-	--radius: 0.625rem;
+	/* 圆角基准：12px。派生出 sm 8 / md 10 / lg 12 / xl 16 / 2xl 20 / 3xl 24。 */
+	--radius: 0.75rem;
 	--sidebar: oklch(0.985 0 0);
 	--sidebar-foreground: oklch(0.145 0 0);
 	--sidebar-primary: oklch(0.205 0 0);
@@ -77,6 +78,8 @@
 
 @theme inline {
 	--font-sans: "Inter Variable", sans-serif;
+	/* 统一的「克制」缓动曲线：位移/透明度类微交互专用，禁止光效。 */
+	--ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -115,6 +118,31 @@
 	--radius-2xl: calc(var(--radius) + 8px);
 	--radius-3xl: calc(var(--radius) + 12px);
 	--radius-4xl: calc(var(--radius) + 16px);
+}
+
+@layer components {
+	/*
+	 * 细轨圆头滑块：与卡片语言一致的克制控件（纯几何，无阴影/光效）。
+	 * 轨道即 input 自身背景，滑块由各引擎伪元素统一为同尺寸圆点。
+	 */
+	.cn-range {
+		@apply h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted outline-none;
+	}
+	.cn-range:focus-visible {
+		@apply ring-1 ring-ring/50;
+	}
+	.cn-range::-webkit-slider-thumb {
+		@apply size-3.5 appearance-none rounded-full border-0 bg-foreground transition-transform duration-150;
+	}
+	.cn-range:active::-webkit-slider-thumb {
+		@apply scale-90;
+	}
+	.cn-range::-moz-range-track {
+		@apply h-1.5 rounded-full bg-muted;
+	}
+	.cn-range::-moz-range-thumb {
+		@apply size-3.5 rounded-full border-0 bg-foreground;
+	}
 }
 
 @layer base {

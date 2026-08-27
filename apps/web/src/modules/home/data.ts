@@ -11,6 +11,7 @@ export type SocialLink = {
 
 export const siteConfig = {
 	name: "小鱼泡泡",
+	websiteTitle: "小鱼泡泡的摄影站",
 	tagline: "Photography",
 	role: "Photographer",
 	bio: "A quiet study of light, land, and the spaces in between — where the ordinary is allowed to fall still and become extraordinary.",

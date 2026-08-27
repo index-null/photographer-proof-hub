@@ -3,6 +3,7 @@ import {
 	Card,
 	CardAction,
 	CardContent,
+	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "@photographer-proof-hub/ui/components/card";
@@ -46,10 +47,10 @@ function RangeRow({
 	onChange: (value: number) => void;
 }) {
 	return (
-		<div className="space-y-1.5">
+		<div className="space-y-2">
 			<div className="flex items-center justify-between">
 				<Label>{label}</Label>
-				<span className="font-mono text-muted-foreground text-xs tabular-nums">
+				<span className="font-mono text-foreground/80 text-xs tabular-nums">
 					{value}
 					{suffix}
 				</span>
@@ -61,7 +62,7 @@ function RangeRow({
 				step={step}
 				value={value}
 				onChange={(e) => onChange(Number(e.target.value))}
-				className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+				className="cn-range"
 			/>
 		</div>
 	);
@@ -142,16 +143,20 @@ export default function CreateGalleryDialog({
 			<button
 				type="button"
 				aria-label="关闭对话框"
-				className="absolute inset-0 cursor-default bg-black/50"
+				className="fade-in-0 absolute inset-0 animate-in cursor-default bg-black/60 backdrop-blur-sm duration-200"
 				onClick={() => onOpenChange(false)}
 			/>
-			<Card className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto">
+			<Card className="fade-in-0 zoom-in-[0.98] relative z-10 max-h-[90vh] w-full max-w-3xl animate-in overflow-y-auto duration-200 ease-emphasized">
 				<CardHeader>
 					<CardTitle>新建选片项目</CardTitle>
+					<CardDescription>
+						配置项目信息与平铺水印，创建后即可上传预览图并生成客户链接。
+					</CardDescription>
 					<CardAction>
 						<Button
 							variant="ghost"
-							size="icon"
+							size="icon-sm"
+							className="rounded-full"
 							onClick={() => onOpenChange(false)}
 							aria-label="关闭"
 						>
@@ -167,10 +172,10 @@ export default function CreateGalleryDialog({
 							e.stopPropagation();
 							form.handleSubmit();
 						}}
-						className="grid gap-6 md:grid-cols-2"
+						className="grid gap-5 md:grid-cols-2"
 					>
 						{/* 左列：基础信息与水印参数 */}
-						<div className="space-y-4">
+						<div className="space-y-5">
 							<form.Field name="name">
 								{(field) => (
 									<div className="space-y-2">
@@ -209,8 +214,8 @@ export default function CreateGalleryDialog({
 								)}
 							</form.Field>
 
-							<div className="rounded-none border p-3">
-								<p className="mb-3 font-medium text-sm">水印配置</p>
+							<div className="rounded-xl bg-muted/40 p-4 ring-1 ring-border">
+								<p className="mb-4 font-medium text-sm">水印配置</p>
 								<div className="space-y-4">
 									<form.Field name="watermark.enabled">
 										{(field) => (
@@ -250,7 +255,7 @@ export default function CreateGalleryDialog({
 														id={field.name}
 														value={field.state.value}
 														onChange={(e) => field.handleChange(e.target.value)}
-														className="h-9 w-12 cursor-pointer rounded-none border bg-transparent"
+														className="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-input bg-transparent p-1"
 													/>
 													<Input
 														value={field.state.value}
@@ -335,7 +340,7 @@ export default function CreateGalleryDialog({
 						</div>
 
 						{/* 右列：实时预览 */}
-						<div className="space-y-3">
+						<div className="space-y-3 md:sticky md:top-0 md:self-start">
 							<Label>实时预览</Label>
 							<form.Subscribe selector={(state) => state.values.watermark}>
 								{(watermark) => <WatermarkPreview config={watermark} />}
@@ -345,7 +350,7 @@ export default function CreateGalleryDialog({
 							</p>
 						</div>
 
-						<div className="flex justify-end gap-2 md:col-span-2">
+						<div className="flex justify-end gap-2 border-t pt-5 md:col-span-2">
 							<Button
 								type="button"
 								variant="outline"

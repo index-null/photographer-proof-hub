@@ -29,13 +29,13 @@ const ContactCard = ({ title, href, className }: Props) => {
 			target="_blank"
 			rel="noopener noreferrer"
 			className={cn(
-				"group flex h-full w-full cursor-pointer items-center justify-between rounded-xl bg-muted p-3 font-light transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-muted-foreground/10 lg:p-5",
+				"group flex h-full w-full cursor-pointer items-center justify-between rounded-xl bg-muted p-3 font-light transition-all duration-150 ease-emphasized hover:bg-muted-foreground/10 lg:p-5",
 				className,
 			)}
 		>
 			<p className="text-sm">{title}</p>
 
-			<div className="relative inline-block size-[18px] overflow-hidden">
+			<div className="relative inline-block size-4.5 overflow-hidden">
 				<div className="group relative inline-block h-full w-full font-light text-sm">
 					<span className="block transform transition-transform duration-200 ease-in-out group-hover:-translate-y-full">
 						<Icon size={18} color={color} />

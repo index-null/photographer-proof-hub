@@ -172,7 +172,7 @@ export function Lightbox({
 						type="button"
 						aria-label="关闭"
 						onClick={onClose}
-						className="rounded-none p-1 hover:bg-white/10"
+						className="rounded-full p-1.5 transition-colors hover:bg-white/10"
 					>
 						<X className="size-5" />
 					</button>
@@ -186,7 +186,7 @@ export function Lightbox({
 						aria-label="切换收藏视图"
 						onClick={() => onViewChange(view === "all" ? "starred" : "all")}
 						className={cn(
-							"flex items-center gap-1 rounded-none px-2 py-1 transition-colors",
+							"flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition-colors",
 							view === "starred"
 								? "bg-yellow-400/20 text-yellow-300"
 								: "text-white/70 hover:bg-white/10",
@@ -207,7 +207,7 @@ export function Lightbox({
 						type="button"
 						aria-label={photo.starred ? "取消收藏" : "收藏"}
 						onClick={() => void toggleStar()}
-						className="flex items-center gap-1 rounded-none px-2 py-1 transition-colors hover:bg-white/10"
+						className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-white/10"
 					>
 						<Star
 							className={
@@ -238,7 +238,7 @@ export function Lightbox({
 					type="button"
 					aria-label="上一张"
 					onClick={() => navigate(-1)}
-					className="absolute top-1/2 left-1 -translate-y-1/2 rounded-none bg-black/40 p-2 text-white hover:bg-black/60"
+					className="absolute top-1/2 left-1 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition-colors hover:bg-black/60"
 				>
 					<ChevronLeft className="size-6" />
 				</button>
@@ -246,7 +246,7 @@ export function Lightbox({
 					type="button"
 					aria-label="下一张"
 					onClick={() => navigate(1)}
-					className="absolute top-1/2 right-1 -translate-y-1/2 rounded-none bg-black/40 p-2 text-white hover:bg-black/60"
+					className="absolute top-1/2 right-1 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition-colors hover:bg-black/60"
 				>
 					<ChevronRight className="size-6" />
 				</button>

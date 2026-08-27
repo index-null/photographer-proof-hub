@@ -155,11 +155,11 @@ function RouteComponent() {
 									<span>创建于 {dateFmt.format(new Date(g.createdAt))}</span>
 								</div>
 								{g.watermark?.enabled ? (
-									<span className="inline-block rounded-none bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">
+									<span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">
 										水印已启用
 									</span>
 								) : (
-									<span className="inline-block rounded-none bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+									<span className="inline-block rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
 										无水印
 									</span>
 								)}

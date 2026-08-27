@@ -385,11 +385,11 @@ function GalleryDetail() {
 						) : null}
 					</div>
 					{wm?.enabled ? (
-						<span className="inline-block rounded-none bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">
+						<span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">
 							水印已启用
 						</span>
 					) : (
-						<span className="inline-block rounded-none bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+						<span className="inline-block rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
 							无水印
 						</span>
 					)}
@@ -529,7 +529,7 @@ function Dropzone({
 				setDragging(false);
 				if (e.dataTransfer.files?.length) onFiles(e.dataTransfer.files);
 			}}
-			className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-none border-2 border-dashed p-8 text-center transition-colors ${
+			className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
 				dragging ? "border-primary bg-primary/5" : "border-muted-foreground/30"
 			}`}
 		>
@@ -564,12 +564,12 @@ function QueueRow({
 }) {
 	const pct = Math.round(item.progress * 100);
 	return (
-		<li className="flex items-center gap-3 rounded-none border p-2">
+		<li className="flex items-center gap-3 rounded-xl border p-2">
 			{item.previewUrl ? (
 				<img
 					src={item.previewUrl}
 					alt=""
-					className="size-10 shrink-0 rounded-none object-cover"
+					className="size-10 shrink-0 rounded-lg object-cover"
 				/>
 			) : (
 				<div className="size-10 shrink-0 bg-muted" />
@@ -732,7 +732,7 @@ function SharePanel({
 				</div>
 
 				{links.length > 0 ? (
-					<ul className="divide-y border">
+					<ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
 						{links.map((link) => (
 							<li
 								key={link.id}
@@ -744,7 +744,7 @@ function SharePanel({
 										<button
 											type="button"
 											aria-label="复制"
-											className="shrink-0 text-muted-foreground hover:text-foreground"
+											className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
 											onClick={() => copy(link.url)}
 										>
 											<Copy className="size-4" />
@@ -752,20 +752,20 @@ function SharePanel({
 									</div>
 									<div className="mt-1 flex flex-wrap gap-2 text-xs">
 										{link.hasAccessCode ? (
-											<span className="rounded-none bg-primary/10 px-1.5 py-0.5 text-primary">
+											<span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary">
 												需提取码
 											</span>
 										) : (
-											<span className="rounded-none bg-muted px-1.5 py-0.5 text-muted-foreground">
+											<span className="rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground">
 												无提取码
 											</span>
 										)}
 										{link.isActive ? (
-											<span className="rounded-none bg-emerald-500/10 px-1.5 py-0.5 text-emerald-600">
+											<span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-emerald-600">
 												有效
 											</span>
 										) : (
-											<span className="rounded-none bg-destructive/10 px-1.5 py-0.5 text-destructive">
+											<span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-destructive">
 												已关闭
 											</span>
 										)}

@@ -64,7 +64,7 @@ export function GalleryView({
 
 	return (
 		<div className="mx-auto flex min-h-full max-w-3xl flex-col">
-			<header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
+			<header className="sticky top-0 z-10 border-border border-b bg-background/80 backdrop-blur-xl">
 				<div className="flex items-start justify-between gap-3 p-3">
 					<div className="min-w-0">
 						<h1 className="cn-font-heading truncate font-semibold text-base">
@@ -76,7 +76,7 @@ export function GalleryView({
 							</p>
 						) : null}
 					</div>
-					<div className="flex shrink-0 items-center gap-1 rounded-none bg-muted px-2 py-1 text-xs">
+					<div className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs">
 						<Star className="size-3.5 text-primary" />
 						{starredCount}/{photos.length}
 					</div>
@@ -84,12 +84,12 @@ export function GalleryView({
 
 				{/* 全部 / 已收藏 切换 */}
 				<div className="flex items-center gap-1.5 px-3 pb-2">
-					<div className="flex shrink-0 rounded-none border border-border p-0.5 text-xs">
+					<div className="flex shrink-0 rounded-xl border border-border p-0.5 text-xs">
 						<button
 							type="button"
 							onClick={() => setView("all")}
 							className={cn(
-								"rounded-none px-2.5 py-1 transition-colors",
+								"rounded-lg px-2.5 py-1 transition-colors",
 								view === "all"
 									? "bg-primary text-primary-foreground"
 									: "text-muted-foreground hover:text-foreground",
@@ -101,7 +101,7 @@ export function GalleryView({
 							type="button"
 							onClick={() => setView("starred")}
 							className={cn(
-								"flex items-center gap-1 rounded-none px-2.5 py-1 transition-colors",
+								"flex items-center gap-1 rounded-lg px-2.5 py-1 transition-colors",
 								view === "starred"
 									? "bg-primary text-primary-foreground"
 									: "text-muted-foreground hover:text-foreground",
@@ -126,7 +126,7 @@ export function GalleryView({
 							: "这个选片项目还没有照片。"}
 					</div>
 				) : (
-					<div className="grid grid-cols-2 gap-1.5 p-1.5 sm:grid-cols-3">
+					<div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-3">
 						{visiblePhotos.map((p) => {
 							const count = commentsByPhoto.get(p.id)?.length ?? 0;
 							return (
@@ -161,7 +161,7 @@ export function GalleryView({
 										/>
 									</button>
 									{count > 0 ? (
-										<span className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-none bg-black/55 px-1.5 py-0.5 text-white text-xs">
+										<span className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-full bg-black/55 px-1.5 py-0.5 text-white text-xs">
 											<MessageSquare className="size-3.5" />
 											{count}
 										</span>

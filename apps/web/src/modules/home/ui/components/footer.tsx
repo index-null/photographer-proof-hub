@@ -12,15 +12,15 @@ const Footer = () => {
 				<FooterNav
 					title="Pages"
 					links={[
-						{ title: "Home", href: "/" },
-						{ title: "Dashboard", href: "/dashboard" },
+						{ title: "首页", href: "/" },
+						{ title: "工作台", href: "/dashboard" },
 					]}
 				/>
 				<FooterNav
-					title="Collections"
+					title="Next"
 					links={[
-						{ title: "孤独的色彩", href: "/dashboard" },
-						{ title: "虚幻之地", href: "/dashboard" },
+						{ title: "注册", href: "/login" },
+						{ title: "登录", href: "/login" },
 					]}
 				/>
 			</div>

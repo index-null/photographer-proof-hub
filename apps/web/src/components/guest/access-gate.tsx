@@ -85,32 +85,43 @@ export function AccessGate({
 	};
 
 	return (
-		<div className="mx-auto flex min-h-full max-w-sm flex-col justify-center gap-6 p-6">
-			<div className="text-center">
-				<h1 className="cn-font-heading font-semibold text-xl">私密选片</h1>
-				<p className="mt-1 text-muted-foreground text-sm">
-					该分享链接受提取码保护
-				</p>
+		<div className="mx-auto flex min-h-full max-w-sm flex-col justify-center p-6">
+			<div className="rounded-2xl bg-card p-7 ring-1 ring-border">
+				<div className="mb-6 flex flex-col items-center text-center">
+					<div className="flex size-12 items-center justify-center rounded-full bg-muted">
+						<Lock className="size-5 text-muted-foreground" />
+					</div>
+					<h1 className="cn-font-heading mt-4 font-semibold text-xl">
+						私密选片
+					</h1>
+					<p className="mt-1 text-muted-foreground text-sm">
+						该分享链接受提取码保护
+					</p>
+				</div>
+				<div className="space-y-2">
+					<Label htmlFor="access-code">提取码</Label>
+					<Input
+						id="access-code"
+						value={code}
+						autoFocus
+						placeholder="请输入提取码"
+						onChange={(e) => setCode(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && !submitting) void submit();
+						}}
+					/>
+					{phase === "wrongCode" && error ? (
+						<p className={cn("text-destructive text-xs")}>{error}</p>
+					) : null}
+				</div>
+				<Button
+					className="mt-5 w-full"
+					disabled={submitting}
+					onClick={() => void submit()}
+				>
+					{submitting ? "验证中…" : "进入"}
+				</Button>
 			</div>
-			<div className="space-y-2">
-				<Label htmlFor="access-code">提取码</Label>
-				<Input
-					id="access-code"
-					value={code}
-					autoFocus
-					placeholder="请输入提取码"
-					onChange={(e) => setCode(e.target.value)}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && !submitting) void submit();
-					}}
-				/>
-				{phase === "wrongCode" && error ? (
-					<p className={cn("text-destructive text-xs")}>{error}</p>
-				) : null}
-			</div>
-			<Button disabled={submitting} onClick={() => void submit()}>
-				{submitting ? "验证中…" : "进入"}
-			</Button>
 		</div>
 	);
 }

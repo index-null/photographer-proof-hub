@@ -40,7 +40,7 @@ export default function WatermarkPreview({
 			ref={canvasRef}
 			width={320}
 			height={200}
-			className={`block w-full rounded-none ring-1 ring-foreground/10 ${className ?? ""}`}
+			className={`block w-full rounded-xl ring-1 ring-border ${className ?? ""}`}
 		/>
 	);
 }
