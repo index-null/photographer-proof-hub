@@ -1,8 +1,16 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 
 import UserMenu from "./user-menu";
 
 export default function Header() {
+	// 客户免登录 H5（/s/*）是独立浏览页，不展示摄影师后台导航。
+	const pathname = useRouterState({
+		select: (s) => s.location.pathname,
+	});
+	if (pathname.startsWith("/s/")) {
+		return null;
+	}
+
 	const links = [
 		{ to: "/", label: "Home" },
 		{ to: "/dashboard", label: "Dashboard" },

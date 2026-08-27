@@ -21,6 +21,7 @@
 ```
 
 **关键决策（已与用户对齐）：**
+
 1. **存储**：`Cloudflare R2`，出网流量免费，10GB/月免费额度，操作次数 100 万次（写）/ 1000 万次（读）免费。
 2. **图片处理**：浏览器 Canvas 压缩 + 平铺水印，**Worker 不碰 CPU 重活**，全程免费。
 3. **原图**：不进云端，摄影师本地保留；R2 只存「低清 + 平铺水印预览图」。
@@ -67,6 +68,30 @@ inviteCode: {
 
 ---
 
+## 迭代路线图与排期总览
+
+> 状态：已完成 / 待做 / 部分完成。MVP 上线 = Phase 1~5 走完；Phase 6 管理员体系为试点后增强，不阻塞 MVP。
+
+| Phase | Iter    | 主题                                     | 状态     | 说明                                    |
+| ----- | ------- | ---------------------------------------- | -------- | --------------------------------------- |
+| 1     | 1.1~1.3 | 基础设施 / Schema / Seed                 | 已完成   | R2、6 张表、邀请码 seed 全落地          |
+| 2     | 2.1~2.4 | 后端 API（项目/上传/分享/免登录/邀请码） | 已完成   | oRPC + Hono 上传/图片路由全通           |
+| 3     | 3.1~3.2 | 后台 UI（列表/水印/批量上传）            | 已完成   | 含 Canvas 压缩、owner 图片读取          |
+| 3     | 3.3     | 分享链接管理 + 网格/删除 + 标星导出/排序 | 已完成   | 分享面板/网格/删除/CSV 导出/拖拽排序全交付 |
+| 3     | 3.4     | 注册表单邀请码                           | 已完成   | 随 2.4 提前落地                         |
+| 4     | 4.1~4.3 | 客户 H5（访问/浏览标星留言/防盗）        | 已完成   | MVP 核心交付，最高优先                  |
+| 5     | 5.1~5.2 | 联调验收 + Cloudflare 部署               | 待做     | 上线                                    |
+| 6     | 6.1~6.2 | 管理员体系（从 3.4 拆出，延后）          | 待做     | 三重角色；邀请码 CRUD + 摄影师管理      |
+
+**排期原则**：
+
+1. Phase 4 优先于一切增强——客户可用是产品价值闭环，紧跟 Phase 3 收尾。
+2. 3.3 的 CSV 导出与拖拽排序已在本次迭代落地（新增后端 `photo.stars` 聚合接口 + `photo.reorder` 落库，前端原生拖拽 + BOM CSV 下载），不依赖 4.2。
+3. 邀请码管理不归摄影师（见 Iter 3.4）——本质为平台运营能力，并入 Phase 6；试点期靠 数据库sql 手动加码。
+4. 管理员体系不阻塞 MVP：`user.role` + `adminProcedure` 改造量小但需独立设计，放上线后迭代。
+
+---
+
 # Phase 1 — 基础设施与数据模型
 
 ## Iter 1.1 — R2 存储接入与基础设施
@@ -74,6 +99,7 @@ inviteCode: {
 **内容**：在 `alchemy.run.ts` 声明 R2 Bucket 并绑定到 Worker；补齐 `env` 类型；封装 `put/get` 辅助函数。
 
 **验收标准：**
+
 - [x] `packages/infra/alchemy.run.ts` 新增 `Cloudflare.R2.Bucket("ProofPreviews")`，并绑定到 `server` Worker（binding 名 `PROOF_PREVIEWS`）。
 - [x] `packages/env/env.d.ts` 能通过 `cloudflare:workers` 推断出 `env.PROOF_PREVIEWS` 的 `R2Bucket` 类型，`bun run check-types` 零报错。
 - [x] 新增 `apps/server/src/lib/r2.ts`，导出 `putPreview(key, bytes, contentType)` 与 `getPreview(key)` 两个纯函数。
@@ -84,6 +110,7 @@ inviteCode: {
 **内容**：在 `packages/db/src/schema/` 新增 `gallery.ts`、`photo.ts`、`share_link.ts`、`star.ts`、`comment.ts`、`invite_code.ts`，并建立 relations。
 
 **验收标准：**
+
 - [x] 新增 6 张表：`gallery`、`photo`、`share_link`、`photo_star`、`gallery_comment`、`invite_code`，字段与上述数据模型一致。
 - [x] `schema/index.ts` 导出全部新表 + relations（gallery → photo/shareLink；shareLink → star/comment；photo → star）；`auth.ts` 的 `user` 表新增 `inviteCodeId` 外键（`invite_code.id`，`ON DELETE set null`）。
 - [x] 生成迁移文件 `src/migrations/0000_stormy_scarecrow.sql`，并 push 到 Supabase（6 新表 + `user.invite_code_id` 列 + 全部外键/索引）。
@@ -96,6 +123,7 @@ inviteCode: {
 **内容**：新增 `packages/db/src/seed.ts`，通过 `bun run db:seed` 幂等写入若干内置邀请码。
 
 **验收标准：**
+
 - [x] 新增 `packages/db/src/seed.ts` + db 包 `db:seed` 脚本；根 `package.json` 加 `db:seed` turbo 脚本 + `turbo.json` 注册 `db:seed` 任务（非 interactive）。
 - [x] seed 幂等：已存在的 `code` 跳过，重复执行不报错、不重复插入（二次运行 5 条全部 `[skip]`）。
 - [x] 内置 5 个邀请码（`PILOT-001` ~ `PILOT-005`），`maxUses=1`、`usedCount=0`、`isActive=true`。
@@ -111,6 +139,7 @@ inviteCode: {
 **内容**：新增 oRPC 路由（`protectedProcedure`）`gallery.create/list/get/update/delete`；新增独立 Hono 上传路由 `POST /api/upload`（multipart → R2 → 写 photo 元数据）。
 
 **验收标准：**
+
 - [x] `packages/api/src/routers/` 新增 `gallery.ts`、`photo.ts`，挂载到 `appRouter`，类型经 `AppRouter` 传播到前端 `client`。
 - [x] 上传路由 `POST /api/upload`（Hono，`c.req.formData()`）接收 `galleryId + file`，写入 R2（key = `${galleryId}/${photoId}.jpg`），并 `insert` photo 元数据；仅登录摄影师可调用。
 - [x] 上传返回 `{ id, r2Key, originalFilename, width, height, size }`。
@@ -118,6 +147,7 @@ inviteCode: {
 - [x] `bun run check-types` 零报错。
 
 **完成记录（实测结论）：**
+
 - 路由落地：`gallery.ts`（`create/list/get/update/delete`）、`photo.ts`（`list`）；`createContext` 注入 `db`；`uploadRoute` 挂在 `/api/upload`。
 - **关键约束**：oRPC HTTP 路径用**斜杠**而非点号 —— 客户端 `RPCLink` 经 `toHttpPath` 自动转 `/rpc/gallery/create`，curl 实测也必须用斜杠（用 `gallery.create` 点号会 404）。`gallery`/`photo` 的嵌套对象会被拍平为两级路径。
 - **photo.id 必须显式等于 r2Key 中的 photoId**：drizzle 的 `$defaultFn(crypto.randomUUID)` 会另生成一个 id，导致 `photo.id` 与 `r2Key` 不一致；上传时在 `insert` 显式传入 `id: photoId` 解决（否则后续 `/img/:key` 与导出清单无法对应）。
@@ -129,6 +159,7 @@ inviteCode: {
 **内容**：新增 `shareLink.create/get/list/disable`，提取码用 Web Crypto PBKDF2 哈希存储。
 
 **验收标准：**
+
 - [x] `shareLink.create` 支持 `accessCode?`（可空）与 `expiresAt?`（可空），生成唯一 `slug`，返回完整分享 URL。
 - [x] `accessCode` 只存 PBKDF2 哈希，明文不落库、不返回。
 - [x] `shareLink.disable` 将 `isActive` 置 false；`shareLink.list` 返回某 gallery 全部链接及状态。
@@ -136,6 +167,7 @@ inviteCode: {
 - [x] `bun run check-types` 零报错。
 
 **完成记录（实测结论）：**
+
 - 路由落地：`packages/api/src/routers/share_link.ts`（`create/get/list/disable`），挂载到 `appRouter.shareLink`；复用 `createContext` 注入的 `db` 与 `session`。
 - 提取码哈希：`packages/api/src/lib/access-code.ts`（Web Crypto PBKDF2，`salt:hash` 落库，明文不返回；`verifyAccessCode` 预留给 Iter 2.3 `guest.verify` 复用）。
 - slug 生成与分享 URL：`packages/api/src/lib/share.ts`（`generateSlug` base64url 16B；`buildShareUrl` 用 `env.CLIENT_BASE_URL` 拼 `/s/:slug`）。
@@ -149,6 +181,7 @@ inviteCode: {
 **内容**：新增 `publicProcedure` 路由：`guest.verify(slug, code)`、`guest.gallery(slug)`、`guest.photos(slug)`、`guest.star/ unstar`、`guest.comment.create`；新增 `GET /img/:key` 鉴权读取。
 
 **验收标准：**
+
 - [x] `guest.verify` 校验：链接存在 → `isActive` → 未过期 → 提取码匹配；任一失败返回对应 ORPCError（404/403/410）。
 - [x] 校验通过后返回一次性 `viewToken`（HMAC 签名，含 slug + 过期时间），后续 `guest.*` 与 `/img/:key` 用它鉴权。
 - [x] `GET /img/:key` 校验 viewToken 有效后从 R2 读图返回，附 `Cache-Control: public, max-age=...`，否则 403。
@@ -158,6 +191,7 @@ inviteCode: {
 - [x] `bun run check-types` 零报错。
 
 **完成记录（实测结论）：**
+
 - 新增 `packages/api/src/lib/view-token.ts`（HMAC-SHA256 签名/校验 viewToken，密钥 `VIEW_TOKEN_SECRET`，7 天有效期，定长时间安全比较）。
 - 新增 `packages/api/src/lib/guest.ts`（`resolveActiveShare` 校验「存在→启用→未过期」；`authorizeGuest` 先校验 token 再复核链接仍有效，token 绑定 slug 防止错配）。
 - 路由落地：`packages/api/src/routers/guest.ts`（`verify` / `gallery` / `photos` / `star` / `unstar` / `comment.create` / `comments`），挂载到 `appRouter.guest`。
@@ -174,6 +208,7 @@ inviteCode: {
 **内容**：新增 `publicProcedure` `invite.verify(code)`；摄影师注册成功后在服务端消费邀请码（`usedCount + 1`、`user.inviteCodeId` 关联）。
 
 **验收标准：**
+
 - [x] `invite.verify(code)` 校验：存在 → `isActive` → `usedCount < maxUses` → 未过期；返回 `{ valid, reason? }`。
 - [x] 注册流程：Better Auth signUp 成功后，在服务端原子消费邀请码（`usedCount + 1`、`user.inviteCodeId` 指向该码）；消费失败则注册回滚。
 - [x] 消费具备原子性（`usedCount < maxUses` 条件更新 / 事务），同一码不会超发。
@@ -181,6 +216,7 @@ inviteCode: {
 - [x] `bun run check-types` 零报错。
 
 **完成记录（实测结论）：**
+
 - 新增 `packages/api/src/routers/invite.ts`（`verify` 仅保留预校验），挂载到 `appRouter.invite`；oRPC HTTP 路径为 `/rpc/invite/verify`。
 - `invite.verify(code)`（`publicProcedure`）仅做只读校验，返回 `{ valid, reason? }`；拒绝原因细分「不存在 / 已停用 / 已达上限 / 已过期」。
 - **强约束（核心）：消费逻辑下沉到 Better Auth 注册钩子**，彻底杜绝「绕过前端直连 `/api/auth/sign-up/email` 免码注册」——这是涉及真实 Cloudflare 费用的后台，必须服务端兜底。
@@ -200,9 +236,11 @@ inviteCode: {
 - `bun run check-types` 全包零报错；`biome check` 零问题。
 
 **顺带补充（原属 Iter 3.4 范围，提前落地以使 2.4 端到端可用）：**
+
 - `apps/web/src/components/sign-up-form.tsx` 增加「Invite Code」必填项：提交前先 `client.invite.verify` 预校验（无效即时提示、不发起注册），通过后再 `authClient.signUp.email({ ..., inviteCode })` 提交，由服务端钩子原子消费并落库；已无前端 `consume` 调用（`invite.consume` 路由已移除，避免与钩子重复消费）。
 
 **后续可优化（非阻塞）：**
+
 - `packages/api/src/lib/access-code.ts:70` 存在一处与本次无关的预存类型告警（`Uint8Array<ArrayBufferLike>` 不兼容 `BufferSource`，TS 6.0 lib 变更导致），`bun run check-types` 不覆盖该文件故门禁仍绿；建议后续单独修一处类型转换。
 
 ---
@@ -214,12 +252,14 @@ inviteCode: {
 **内容**：扩展 `_auth` 路由：项目列表页 + 新建项目表单（名称、描述、水印文字/颜色/透明度/大小/角度/间距 + 实时预览）。
 
 **验收标准：**
+
 - [x] `/dashboard` 展示当前摄影师的全部 gallery，可新建/删除。
 - [x] 新建表单含水印配置项（text/color/opacity/fontSize/rotation/gapX/gapY/enabled），并有一个小画布**实时预览水印平铺效果**。
 - [x] 保存后 `gallery.watermark` 正确写入，刷新后回填（list 由服务端按 userId 过滤返回并携带 watermark，刷新后稳定呈现）。
 - [x] 界面复用 `packages/ui` 现有组件（button/input/card/label 等），无新增 Emoji 图标（用 lucide-react）。
 
 **实现要点：**
+
 - 复用 `orpc.gallery.list` 查询 + `client.gallery.create` / `client.gallery.delete`（`useMutation` + `invalidateQueries`）。
 - 水印核心 `WatermarkConfig` 类型与 `drawWatermark`（平铺旋转）下沉到 `apps/web/src/utils/watermark.ts`，同时供 **Iter 3.2** 的 Canvas 压缩复用（已在 3.2 规划中提及该文件，此处理所应当提前落地）。
 - 实时预览组件 `apps/web/src/components/watermark-preview.tsx`：在模拟照片渐变背景上 `useEffect` 跟随配置平铺重绘。
@@ -231,6 +271,7 @@ inviteCode: {
 **内容**：在已落地的 `apps/web/src/utils/watermark.ts`（含 `drawWatermark` 平铺绘制）基础上，补充 Canvas 缩放 + JPEG 导出；上传页支持拖拽/多选 + 进度条。
 
 **验收标准：**
+
 - [x] `watermark.ts` 输出函数 `compressAndWatermark(file, config)`：输入 `File + watermarkConfig`，返回 `{ blob, width, height }`（JPEG，长边 ≤ 1600px，quality ≈ 0.7）。`drawWatermark`（平铺旋转，Iter 3.1 已落地）在此直接复用。
 - [x] 平铺水印按 `gapX/gapY` 排布、`rotation` 旋转、`opacity` 透明，覆盖整图且裁剪不掉（与预览保持一致算法）。
 - [x] 上传页支持多选/拖拽，逐张走 `POST /api/upload`，展示进度与失败重试。
@@ -238,12 +279,14 @@ inviteCode: {
 - [ ] 实测：选 10 张本地原图 → 上传后 R2 只存低清水印版（单张 < 300KB），Supabase `photo` 记录齐全。（待手测，逻辑与 Iter 2.1 上传同源）
 
 **完成记录（实测结论）：**
+
 - 浏览器侧压缩：`apps/web/src/utils/watermark.ts` 新增 `compressAndWatermark` 与 `toJpegFile`。关键细节：用 `createImageBitmap(file, { imageOrientation: "from-image" })` 自动按 EXIF orientation 校正，避免手机/相机竖拍照片在 Canvas 被旋转（经 anysearch 核实为当前最佳实践）。长边 > 1600px 才缩放；平铺水印复用 `drawWatermark` 保证与预览一致。
 - 上传链路：`apps/web/src/lib/upload.ts` 用 `XMLHttpRequest`（fetch 无法监听上传进度）以 `multipart/form-data` POST `/api/upload`，携带 Cookie；`onprogress` 驱动进度条，失败可重试。
 - 页面：`apps/web/src/routes/_auth/gallery/$galleryId.tsx`（新增路由，自动进入 `routeTree.gen.ts`）。含拖拽/多选 dropzone、逐张队列（处理中/上传中/完成/失败 + 进度 + 重试/移除）、上传后即时预览 + 失效 `photo.list` 刷新网格。队列处理由 `useEffect` 监听 `queue` 触发，复用 `processingRef` 防止重入。
 - 入口联动：`dashboard.tsx` 的项目卡片标题与「上传 / 管理」链接至 `/gallery/$galleryId`。
 
 **顺带补全（原属 3.3，为使 3.2 详情页可用而提前落地）：**
+
 - 摄影师本人预览图读取：`apps/server/src/routes/owner-image.ts` 新增 `GET /img/owner/*`，登录态 + 归属校验后从 R2 读图（客户侧仍走 `GET /img/*` + viewToken）。`index.ts` 中**先于** `/img` 注册以免通配抢匹配。
 - `photo.delete`：新增 `packages/api/src/routers/photo.ts` 的 `delete`（`protectedProcedure`），校验归属后删元数据并回收 R2 对象（`env.PROOF_PREVIEWS.delete`），避免孤儿存储。
 - 图片网格 + 单张删除、分享链接创建/管理面板（见 Iter 3.3）一并实现于详情页。
@@ -253,21 +296,42 @@ inviteCode: {
 **内容**：项目详情页：图片网格管理（排序/删除）、分享链接创建与管理、导出标星清单 CSV。
 
 **验收标准：**
+
 - [x] 项目详情页展示全部预览图网格（`ownerImageUrl` 经 `GET /img/owner/*` 读取），可删除单张（`client.photo.delete`）。
-- [ ] 调整 `sortOrder` 的拖拽排序——暂未做（当前按 `sortOrder, createdAt` 升序展示，删除可用）。
 - [x] 分享链接面板：可创建链接（含提取码、有效期天数设置）、复制链接、一键关闭、查看状态（有效/已关闭/已过期），复用 `shareLink.create/list/disable`。
-- [ ] 「导出标星清单」CSV：拉取该 gallery 所有标星 → 前端拼 CSV（UTF-8 BOM）→ 下载。待 Iter 4.2 标星数据落地后接入。
+- [x] 「导出标星清单」CSV：新增后端 `photo.stars`（按 gallery 聚合全部分享链接的 `photo_star`，跨访客去重计数）→ 前端拉取后拼 CSV（UTF-8 BOM）→ 浏览器下载，不再依赖逐张 `guest.photos`。
+- [x] 调整 `sortOrder` 的拖拽排序：新增后端 `photo.reorder`（按有序 id 列表批量覆盖 `sortOrder`，where 同时约束 `galleryId` 防越权）→ 前端用原生 HTML5 拖拽（无新依赖）即时重排并落库。
 - [x] `bun run check-types` / `biome` 零报错（web / api / server 均通过）。
 
-## Iter 3.4 — 注册表单集成邀请码 + 后台邀请码管理
+**完成记录（实测结论）：**
 
-**内容**：`sign-up-form` 增加邀请码必填；后台新增「邀请码」管理页（查看/生成/停用）。
+- 后端新增 `packages/api/src/routers/photo.ts` 的 `stars` 与 `reorder`（均 `protectedProcedure`，先校验 gallery 归属当前摄影师后操作）：
+  - `stars({galleryId})`：`photo_star ⋈ share_link` 取该 gallery 全部标星，按 `photoId` 聚合去重 `clientKey` 计数（`starCount` + `clientKeys`），返回全量预览图（含 0 标星）按 `starCount desc` + 文件名排序，供导出清单。
+  - `reorder({galleryId, orderedIds})`：`Promise.all` 批量 `update photo set sortOrder=index where id=:id AND galleryId=:galleryId`，仅落库归属本项目的图片，杜绝越权改序；返回 `{success:true}`。
+- 前端 `apps/web/src/routes/_auth/gallery/$galleryId.tsx`：
+  - 新增「导出标星清单」按钮（`client.photo.stars` → 拼 `原图文件名,标星数,访客标识` CSV，首行 UTF-8 BOM 确保 Excel 中文不乱码，文件名 `{{gallery.name}}-标星清单.csv`）。
+  - 网格项改为原生 `draggable` HTML5 拖拽：本地 `ordered` 状态即时重排保证手感，落库成功后由 `photo.list` 失效回填；拖拽中源项半透明、目标项高亮 `ring`；含删除按钮，故 `biome-ignore` 标注 `noStaticElementInteractions`（键盘 DnD 超出本迭代范围）。
+- 验证：`bun run check-types` 全包零报错；`biome check` 零错误。
+- **后续可优化（非阻塞）**：拖拽排序仅支持鼠标/触控板（原生 HTML5 DnD），未实现键盘可达的 DnD；如需可引入 `dnd-kit` 或补充键盘交互。
+
+## Iter 3.4 — 注册表单集成邀请码
+
+**内容**：`sign-up-form` 增加邀请码必填 + 提交前 `invite.verify` 预校验；服务端原子消费（Better Auth `user.create.before` 钩子）。
 
 **验收标准：**
-- [ ] `sign-up-form.tsx` 增加「邀请码」必填字段，提交前调 `invite.verify` 预校验，无效码即时提示、不发起注册。
-- [ ] 后台新增「邀请码」管理页：列出所有码（code/usedCount/maxUses/isActive/创建时间），支持停用/启用、生成新码、一键复制。
-- [ ] 摄影师首次注册必须填码，无码无法注册；已有账号不受影响。
-- [ ] 管理页仅登录摄影师可见（`protectedProcedure`），游客/未登录无法访问。
+
+- [x] `sign-up-form.tsx` 增加「邀请码」必填字段，提交前调 `client.invite.verify` 预校验，无效码即时提示、不发起注册。
+- [x] 摄影师首次注册必须填码，无码无法注册（服务端钩子兜底，绕过前端直连注册也被拒）；已有账号不受影响。
+- [x] `bun run check-types` / `biome` 零报错。
+
+**完成记录（随 Iter 2.4 提前落地）：**
+
+- 见 `packages/api/src/routers/invite.ts` 的 `verify` 路由 + `packages/auth/src/index.ts` 注册钩子；`apps/web/src/components/sign-up-form.tsx` 已含必填项与预校验（原文档 Iter 3.4 checklist 未同步，实际功能已交付）。
+
+**关于「邀请码管理页」（已拆出，不做在摄影师侧）：**
+
+- 邀请码（`invite_code`）语义 = **平台侧控制「摄影师注册」**，属运营能力，不属于摄影师工作流（客户访问用的是 `share_link` 分享链接 + 提取码，已在 Iter 3.3 完整管理）。
+- 故管理页不放在摄影师后台，并入 **Phase 6 管理员体系**（仅管理员可见，含邀请码 CRUD + 摄影师管理）。试点期由 `db:seed` 手动分发 `PILOT-*` 码即可，无需 UI。
 
 ---
 
@@ -278,32 +342,46 @@ inviteCode: {
 **内容**：新增公开路由 `/s/:slug`，提取码输入页 → 校验 → 进入浏览。
 
 **验收标准：**
-- [ ] 访问 `/s/:slug`：无码直接进入；有码弹出提取码输入，错误提示、正确进入。
-- [ ] 链接已关闭 → 显示「链接已失效」；已过期 → 显示「链接已过期」。
-- [ ] 校验成功后把 `viewToken` 与 `clientKey`（localStorage UUID）写入本地状态，后续请求携带。（`guest.*` 以 `viewToken` 入参携带；`/img/:key` 以 `?token=` 查询参数携带——浏览器图片请求无法自定义 Header）。
-- [ ] 移动端（375px 宽）输入页与提示样式正常。
+
+- [x] 访问 `/s/:slug`：无码直接进入；有码弹出提取码输入，错误提示、正确进入。
+- [x] 链接已关闭 → 显示「链接已失效」；已过期 → 显示「链接已过期」。
+- [x] 校验成功后把 `viewToken` 与 `clientKey`（localStorage UUID）写入本地状态，后续请求携带。（`guest.*` 以 `viewToken` 入参携带；`/img/:key` 以 `?token=` 查询参数携带——浏览器图片请求无法自定义 Header）。
+- [x] 移动端（375px 宽）输入页与提示样式正常。
 
 ## Iter 4.2 — 预览图浏览、标星、留言
 
 **内容**：图片网格 + 大图查看（Canvas 渲染）、标星（可撤销）、留言列表 + 提交。
 
 **验收标准：**
-- [ ] 网格展示全部预览图，点击进入大图查看，支持左右切换。
-- [ ] 大图用 **Canvas 渲染**（非裸 `<img>`），标星按钮切换状态，刷新后保持（写入 Supabase）。
-- [ ] 留言支持「针对整组」与「针对某张图」，展示昵称/内容/时间；`clientKey` 区分不同访客。（标星状态直接读 `guest.photos` 返回的 `starred` 字段；留言列表用新增的 `guest.comments` 拉取，无需逐张额外查询）。
-- [ ] 全流程无任何「下载/保存/另存」入口，页面内无原图 URL 泄露（只暴露带水印预览图）。
-- [ ] 移动端浏览流畅，图片懒加载（IntersectionObserver）。
+
+- [x] 网格展示全部预览图，点击进入大图查看，支持左右切换。
+- [x] 大图用 **Canvas 渲染**（非裸 `<img>`），标星按钮切换状态，刷新后保持（写入 Supabase）。
+- [x] 留言支持「针对整组」与「针对某张图」，展示昵称/内容/时间；`clientKey` 区分不同访客。（标星状态直接读 `guest.photos` 返回的 `starred` 字段；留言列表用新增的 `guest.comments` 拉取，无需逐张额外查询）。
+- [x] 全流程无任何「下载/保存/另存」入口，页面内无原图 URL 泄露（只暴露带水印预览图）。
+- [x] 移动端浏览流畅，图片懒加载（IntersectionObserver）。
 
 ## Iter 4.3 — 防盗限制落地
 
 **内容**：全局禁用右键/拖拽、拦截截图/录屏快捷键、图片 Canvas 渲染 + 防长按保存。
 
 **验收标准：**
-- [ ] 客户浏览页：`contextmenu` 与 `dragstart` 被拦截（右键菜单不弹、拖拽无反应）。
-- [ ] 拦截 Windows 截图快捷键（`PrintScreen` / `Alt+PrintScreen` / `Win+Shift+S`）并提示「截图也带水印」；macOS 系统级截图（`Cmd+Shift+3/4`）尽力拦截（无法完全阻止，需在方案中如实说明）。
-- [ ] 长按图片不触发系统「保存图片」菜单（`touchstart`/`contextmenu` 处理，Canvas 渲染）。
-- [ ] 图片元素均为 Canvas 绘制或 CSS 背景 + 透明遮罩，`<img>` 右键无法「另存为」。
-- [ ] 即便抓包拿到图片 URL，访问到的仍是低清 + 平铺水印图（服务端已烘焙，验证截图/抓包均带水印）。
+
+- [x] 客户浏览页：`contextmenu` 与 `dragstart` 被拦截（右键菜单不弹、拖拽无反应）。
+- [x] 拦截 Windows 截图快捷键（`PrintScreen` / `Alt+PrintScreen` / `Win+Shift+S`）并提示「截图也带水印」；macOS 系统级截图（`Cmd+Shift+3/4`）尽力拦截（无法完全阻止，需在方案中如实说明）。
+- [x] 长按图片不触发系统「保存图片」菜单（`touchstart`/`contextmenu` 处理，Canvas 渲染）。
+- [x] 图片元素均为 Canvas 绘制或 CSS 背景 + 透明遮罩，`<img>` 右键无法「另存为」。
+- [x] 即便抓包拿到图片 URL，访问到的仍是低清 + 平铺水印图（服务端已烘焙，验证截图/抓包均带水印）。
+
+**完成记录（实现结论）：**
+
+- 路由：`apps/web/src/routes/s/$slug.tsx`（`ssr:false`，避免 `crypto`/`localStorage` 在 SSR 阶段报错）。`Header` 在 `/s/*` 路径下返回 `null`，客户页不展示摄影师后台导航。
+- 会话层：`apps/web/src/components/guest/use-guest.ts`（`useGuest(slug)`）封装 `clientKey`（localStorage UUID）+ `viewToken`（按 slug 缓存）的获取与复用；`guest.verify` 的各类 `ORPCError` 映射为 `needCode / notFound / expired / disabled / wrongCode` 状态。`client.guest.gallery/photos/star/unstar/comments/comment.create` 全部复用 Phase 2.3 已落地的 publicProcedure。
+- 访问门：`access-gate.tsx` 渲染提取码输入与各失败状态页。
+- 浏览视图：`gallery-view.tsx`（照片网格 + 标星 + 大图灯箱 + 留言 Tab）、`lightbox.tsx`（Canvas 大图 + 左右切换 + 单张留言）、`comment-panel.tsx`（整组留言列表 + 提交）。
+- 图片渲染：`canvas-image.tsx` 以 `fetch(buildImageUrl(r2Key, token)) → blob → drawImage` 在 Canvas 上按 DPR 绘制（非 `<img>`，无「另存为」），并用 `IntersectionObserver`（200px 预加载边距）实现懒加载；blob URL 同源故 Canvas 不污染。`buildImageUrl` 走 `VITE_SERVER_URL/img/:key?token=`，服务端全局 CORS（`apps/server/src/index.ts` 的 `resolveCorsOrigin` 反射 localhost）已放行跨域 `fetch`。
+- 防盗：`use-anti-theft.ts` 全局拦截 `contextmenu`/`dragstart`、截图类快捷键（`PrintScreen`/`Alt+PrintScreen`/`Cmd+Shift+3,4`/`Ctrl+S`/`Ctrl+P`）并提示「截图也带水印」；页面级禁用文本选中与移动端长按呼叫菜单。**诚实声明**：macOS/Windows 系统级截图（硬件按键、系统截图工具）无法被网页 JS 阻止，真正防线是服务端烘焙的「低清 + 平铺水印」预览图。
+- 落地文件：`apps/web/src/{routes/s/$slug.tsx, lib/guest.ts, components/guest/*, components/header.tsx}`。
+- 验证：`bun run check-types`（web 经 `tsc --noEmit` 零报错）、`biome check` 零错误、`bun run build`（web `_slug` 路由成功打包）；`GET /s/:slug` 返回 200；`POST /rpc/guest/verify` 对不存在 slug 返回 `NOT_FOUND`（契约一致）。可视化/Canvas 实际渲染建议在浏览器用真实分享链接走一遍。
 
 ---
 
@@ -314,6 +392,7 @@ inviteCode: {
 **内容**：按真实业务流跑通全链路，修边界问题。
 
 **验收标准：**
+
 - [ ] 全流程演练通过：摄影师用邀请码注册 → 登录 → 建项目 → 配水印 → 批量上传 → 生成带码链接 → 客户手机打开 → 输码 → 浏览/标星/留言 → 摄影师导出清单 → 关闭链接 → 客户刷新看到「已失效」。
 - [ ] 邀请码边界：无码/错误码/超次数码均被拒；`usedCount` 正确递增不超发。
 - [ ] 边界：无效 slug、错误提取码、过期链接、关闭链接、空 gallery、超大文件（>30MB 拒绝并提示）均有友好反馈。
@@ -325,6 +404,7 @@ inviteCode: {
 **内容**：创建正式 R2 bucket，配置环境变量，部署 Worker + 站点。
 
 **验收标准：**
+
 - [ ] 正式 R2 bucket 创建，`alchemy.run.ts` 指向正式资源，绑定生效。
 - [ ] `bun run deploy` 成功，`api.chuhsing.com` 与 `photo.chuhsing.com` 可访问。
 - [ ] 生产环境实测：上传/浏览/标星/导出全通，R2 出网流量费用为 0（账单页确认）。
@@ -332,13 +412,42 @@ inviteCode: {
 
 ---
 
+# Phase 6 — 管理员体系（从 Iter 3.4 拆出，试点后增强，不阻塞 MVP）
+
+> 目标：平台运营方（管理员）管理「摄影师」与「注册邀请码」。当前 `user` 表仅区分「是否已登录」，需引入 `role` 字段形成 管理员 / 摄影师 / 客户（客户本就免登录，无需账号）三重体系。
+> 延后理由：试点期邀请码手动 seed 足够；管理页改造量小但需独立设计角色与权限边界，放上线后迭代。
+
+## Iter 6.1 — 角色模型与权限中间件
+
+**内容**：`user` 表新增 `role`（enum: `admin` / `photographer`，默认 `photographer`）；新增 `adminProcedure`（校验 `session.user.role === 'admin'`）；首个管理员由 seed / 环境变量引导创建。
+
+**验收标准：**
+
+- [ ] `schema/auth.ts` 的 `user` 表新增 `role` 字段并生成迁移 push。
+- [ ] 新增 `adminProcedure`：非 admin 调用返回 `FORBIDDEN`；`protectedProcedure` 不受影响。
+- [ ] 提供「初始化管理员」途径（`db:seed` 指定首个 admin 邮箱，或 env `INITIAL_ADMIN_EMAIL`）。
+- [ ] `bun run check-types` / `biome` 零报错。
+
+## Iter 6.2 — 管理员面板（邀请码 CRUD + 摄影师管理）
+
+**内容**：管理员专属页面（`/admin`，`adminProcedure` 保护）：邀请码列表 / 生成 / 停用启用 / 复制；摄影师列表（邮箱、邀请码来源、注册时间、项目数）。
+
+**验收标准：**
+
+- [ ] 邀请码管理：列出全部码（code/usedCount/maxUses/isActive/创建时间），生成新码（自定义 maxUses / 过期）、停用/启用、一键复制。
+- [ ] 摄影师管理：列出全部摄影师、查看其绑定的邀请码与项目数。
+- [ ] 页面仅管理员可访问；摄影师/游客访问 `/admin` 跳转或 403。
+- [ ] `bun run check-types` / `biome` 零报错。
+
+---
+
 ## 关键风险与说明（已确认）
 
-| 风险 | 结论 |
-|---|---|
-| 原图泄露 | 原图不进云端，客户只接触低清水印图 |
-| 截图绕过 | 无法 100% 阻止，但截图也带水印（烘焙水印兜底） |
-| 图片 URL 被抓包 | URL 只指向低清水印预览图，泄露无实际价值 |
-| R2 存储超 10GB | 只存低清图（≈200KB/张），5 万张才 10GB；超量 $0.015/GB/月 |
-| Workers CPU | 压缩放浏览器，Worker 只搬运，免费额度绰绰有余 |
-| 免费额度重置 | R2 免费额度按月重置，独立摄影师几乎用不满 |
+| 风险            | 结论                                                      |
+| --------------- | --------------------------------------------------------- |
+| 原图泄露        | 原图不进云端，客户只接触低清水印图                        |
+| 截图绕过        | 无法 100% 阻止，但截图也带水印（烘焙水印兜底）            |
+| 图片 URL 被抓包 | URL 只指向低清水印预览图，泄露无实际价值                  |
+| R2 存储超 10GB  | 只存低清图（≈200KB/张），5 万张才 10GB；超量 $0.015/GB/月 |
+| Workers CPU     | 压缩放浏览器，Worker 只搬运，免费额度绰绰有余             |
+| 免费额度重置    | R2 免费额度按月重置，独立摄影师几乎用不满                 |

@@ -14,13 +14,22 @@ import {
 	AlertCircle,
 	CheckCircle2,
 	Copy,
+	Download,
+	GripVertical,
 	ImageUp,
 	Link2,
 	Loader2,
 	Trash2,
 	UploadCloud,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type DragEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { toast } from "sonner";
 import { uploadPreview } from "@/lib/upload";
 import { client, orpc } from "@/utils/orpc";
@@ -217,6 +226,51 @@ function GalleryDetail() {
 		onError: (e) => toast.error(e.message || "删除失败"),
 	});
 
+	// ---- 拖拽排序 ----
+	// 本地维护一份有序副本，拖拽时即时重排以保证手感，落库后再由服务端顺序回填。
+	const [ordered, setOrdered] = useState(photosQuery.data ?? []);
+	useEffect(() => {
+		setOrdered(photosQuery.data ?? []);
+	}, [photosQuery.data]);
+
+	const [dragIndex, setDragIndex] = useState<number | null>(null);
+	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+	const reorderPhotos = useMutation({
+		mutationFn: (ids: string[]) =>
+			client.photo.reorder({ galleryId, orderedIds: ids }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: photoListKey });
+			toast.success("排序已保存");
+		},
+		onError: (e) => {
+			setOrdered(photosQuery.data ?? []);
+			toast.error(e.message || "排序保存失败");
+		},
+	});
+
+	const handleDragStart = (i: number) => setDragIndex(i);
+	const handleDragOver = (e: DragEvent, i: number) => {
+		e.preventDefault();
+		setDragOverIndex(i);
+	};
+	const handleDrop = (e: DragEvent, i: number) => {
+		e.preventDefault();
+		const from = dragIndex;
+		setDragIndex(null);
+		setDragOverIndex(null);
+		if (from === null || from === i) return;
+		const next = [...ordered];
+		const [moved] = next.splice(from, 1);
+		next.splice(i, 0, moved);
+		setOrdered(next);
+		reorderPhotos.mutate(next.map((p) => p.id));
+	};
+	const handleDragEnd = () => {
+		setDragIndex(null);
+		setDragOverIndex(null);
+	};
+
 	if (galleryQuery.isLoading) {
 		return (
 			<div className="mx-auto w-full max-w-5xl p-6 text-muted-foreground">
@@ -242,6 +296,37 @@ function GalleryDetail() {
 	const photos = photosQuery.data ?? [];
 	const links = linksQuery.data ?? [];
 	const wm = gallery.watermark;
+
+	// ---- 导出标星清单（CSV）----
+	// 定义为普通函数（非 Hook）：仅响应点击时执行，避免置于提前 return 之后引发的 Hooks 顺序错乱。
+	const exportStars = async () => {
+		try {
+			const rows = await client.photo.stars({ galleryId });
+			const escapeCsv = (value: string) => {
+				if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+				return value;
+			};
+			const header = "原图文件名,标星数,访客标识\r\n";
+			const body = rows
+				.map(
+					(r) =>
+						`${escapeCsv(r.originalFilename)},${r.starCount},${escapeCsv(r.clientKeys.join("; "))}`,
+				)
+				.join("\r\n");
+			// UTF-8 BOM 确保 Excel 正确识别中文编码。
+			const csv = `﻿${header}${body}`;
+			const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `${gallery.name}-标星清单.csv`;
+			a.click();
+			URL.revokeObjectURL(url);
+			toast.success(`已导出 ${rows.length} 张图片的标星数据`);
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : "导出失败");
+		}
+	};
 
 	return (
 		<div className="mx-auto w-full max-w-5xl space-y-8 p-6">
@@ -306,9 +391,19 @@ function GalleryDetail() {
 
 			{/* 图片网格 */}
 			<section className="space-y-3">
-				<h2 className="font-semibold text-lg">
-					已上传预览图（{photos.length}）
-				</h2>
+				<div className="flex items-center justify-between gap-2">
+					<h2 className="font-semibold text-lg">
+						已上传预览图（{photos.length}）
+					</h2>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={exportStars}
+						disabled={photos.length === 0}
+					>
+						<Download className="size-4" /> 导出标星清单
+					</Button>
+				</div>
 				{photosQuery.isLoading ? (
 					<p className="text-muted-foreground text-sm">加载中…</p>
 				) : photos.length === 0 ? (
@@ -317,17 +412,36 @@ function GalleryDetail() {
 					</p>
 				) : (
 					<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-						{photos.map((p) => (
+						{ordered.map((p, i) => (
+							// biome-ignore lint/a11y/noStaticElementInteractions: 拖拽排序网格项含删除按钮，无法用原生 button，键盘 DnD 超出本迭代范围
 							<div
 								key={p.id}
-								className="group relative overflow-hidden rounded-none border bg-muted"
+								draggable={!reorderPhotos.isPending}
+								onDragStart={() => handleDragStart(i)}
+								onDragOver={(e) => handleDragOver(e, i)}
+								onDrop={(e) => handleDrop(e, i)}
+								onDragEnd={handleDragEnd}
+								className={`group relative overflow-hidden rounded-none border bg-muted transition-opacity ${
+									dragIndex === i ? "opacity-40" : ""
+								} ${
+									dragOverIndex === i && dragIndex !== null && dragIndex !== i
+										? "ring-2 ring-primary ring-inset"
+										: ""
+								}`}
 							>
 								<img
 									src={ownerImageUrl(p.r2Key)}
 									alt={p.originalFilename}
 									loading="lazy"
+									draggable={false}
 									className="aspect-square w-full object-cover"
 								/>
+								<span
+									className="absolute top-1 left-1 cursor-grab text-white/80 drop-shadow"
+									title="拖拽排序"
+								>
+									<GripVertical className="size-4" />
+								</span>
 								<div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/55 px-2 py-1 text-white text-xs">
 									<span className="truncate">{p.originalFilename}</span>
 									<button
