@@ -22,6 +22,8 @@ import { getPreview } from "../lib/r2";
 
 /** 浏览器侧缓存时长：1 天。预览图为只读烘焙产物，可安全长缓存。 */
 const MAX_AGE_SECONDS = 60 * 60 * 24;
+/** 边缘/浏览器陈旧的宽限窗口：过期后先返回旧图，后台异步回源续期。 */
+const STALE_WHILE_REVALIDATE_SECONDS = 60 * 60 * 24 * 7;
 
 export const imageRoute = new Hono();
 
@@ -82,6 +84,9 @@ imageRoute.get("/*", async (c) => {
 
 	const headers = new Headers();
 	obj.writeHttpMetadata(headers);
-	headers.set("Cache-Control", `public, max-age=${MAX_AGE_SECONDS}`);
+	headers.set(
+		"Cache-Control",
+		`public, max-age=${MAX_AGE_SECONDS}, stale-while-revalidate=${STALE_WHILE_REVALIDATE_SECONDS}`,
+	);
 	return c.newResponse(obj.body, 200, Object.fromEntries(headers.entries()));
 });

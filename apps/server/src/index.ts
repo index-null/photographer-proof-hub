@@ -83,7 +83,24 @@ app.use("/*", async (c, next) => {
 	});
 
 	if (rpcResult.matched) {
-		return c.newResponse(rpcResult.response.body, rpcResult.response);
+		const response = rpcResult.response;
+		// 只读客片数据（gallery / photos）走 GET 且无 cookie，可在边缘缓存：
+		// 60s 内直接命中、不回源；过期后先返回旧数据并后台续期 10min。
+		// 摄影师上传新图后最多 60s 客户侧可见，对选片场景可接受。
+		const url = new URL(c.req.url);
+		if (
+			c.req.method === "GET" &&
+			response.status < 400 &&
+			(url.pathname === "/rpc/guest.gallery" ||
+				url.pathname === "/rpc/guest.photos")
+		) {
+			response.headers.set(
+				"Cache-Control",
+				"public, s-maxage=60, stale-while-revalidate=600",
+			);
+			response.headers.set("Cache-Tag", "guest-read");
+		}
+		return c.newResponse(response.body, response);
 	}
 
 	const apiResult = await apiHandler.handle(c.req.raw, {

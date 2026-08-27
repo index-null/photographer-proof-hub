@@ -16,6 +16,9 @@ export const server = Cloudflare.Worker("server", {
 	compatibility: {
 		flags: ["nodejs_compat"],
 	},
+	// 开启 Workers Cache：只读资源（客片图 / guest 数据）按 Cache-Control 在边缘缓存，
+	// 命中即不回源（不跑 Worker、不查库/读 R2）。crossVersionCache 让缓存跨发版保留。
+	cache: { enabled: true, crossVersionCache: true },
 	env: {
 		DATABASE_URL: Config.redacted("DATABASE_URL"),
 		CORS_ORIGIN: Config.string("CORS_ORIGIN"),

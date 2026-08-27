@@ -18,6 +18,8 @@ import { getPreview } from "../lib/r2";
 
 /** 摄影师私有预览图缓存：1 天，private 防止被共享缓存。 */
 const MAX_AGE_SECONDS = 60 * 60 * 24;
+/** 浏览器侧陈旧宽限：过期后先展示旧图，后台续期。 */
+const STALE_WHILE_REVALIDATE_SECONDS = 60 * 60 * 24;
 
 export const ownerImageRoute = new Hono();
 
@@ -55,6 +57,9 @@ ownerImageRoute.get("/*", async (c) => {
 
 	const headers = new Headers();
 	obj.writeHttpMetadata(headers);
-	headers.set("Cache-Control", `private, max-age=${MAX_AGE_SECONDS}`);
+	headers.set(
+		"Cache-Control",
+		`private, max-age=${MAX_AGE_SECONDS}, stale-while-revalidate=${STALE_WHILE_REVALIDATE_SECONDS}`,
+	);
 	return c.newResponse(obj.body, 200, Object.fromEntries(headers.entries()));
 });

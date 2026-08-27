@@ -17,7 +17,7 @@ export const siteConfig = {
 	bio: "A quiet study of light, land, and the spaces in between — where the ordinary is allowed to fall still and become extraordinary.",
 	initials: "鱼",
 	/** Personal intro avatar. */
-	avatar: "/bubble fish.jpg",
+	avatar: "/bubble fish.webp",
 	socialLinks: [
 		{ title: "Xiaohongshu", href: "https://xhslink.cn/o/7zQSUc8912e" },
 		{ title: "GitHub", href: "https://github.com/index-null" },
@@ -67,7 +67,7 @@ const ethereal: PhotoSeed[] = [
 
 export const photos: Photo[] = [...urbani, ...ethereal].map((seed, i) => ({
 	id: `photo-${i}`,
-	src: `/photos/${i < urbani.length ? "urbani" : "ethereal"}/${seed.file}.jpg`,
+	src: `/photos/${i < urbani.length ? "urbani" : "ethereal"}/${seed.file}.webp`,
 	title: seed.title,
 }));
 

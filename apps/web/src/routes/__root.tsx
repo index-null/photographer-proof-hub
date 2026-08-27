@@ -20,6 +20,12 @@ export interface RouterAppContext {
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
+	// 文档（HTML）响应头：浏览器始终 revalidate（max-age=0，保证发版即见），
+	// 边缘按 s-maxage 缓存 1h 并用 stale-while-revalidate 后台续期，降低回源。
+	headers: () => ({
+		"Cache-Control":
+			"public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
+	}),
 	head: () => ({
 		meta: [
 			{

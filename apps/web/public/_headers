@@ -1,0 +1,18 @@
+# Workers Assets 静态资源缓存策略
+# 由 Alchemy 在部署时读取并应用到边缘静态资源层。
+# 已 hash 的构建产物（/assets/*）与版本化 demo 图可安全长期缓存。
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/photos/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/bubble fish.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/favicon.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+/robots.txt
+  Cache-Control: public, max-age=86400
