@@ -25,6 +25,7 @@ type Fit = "cover" | "contain";
  *
  * - 懒加载：进入视口（含 200px 预加载边距）才发起请求，移动端流量友好。
  * - 渲染：blob URL 同源，Canvas 不污染，按 DPR 绘制保证高清。
+ * - 切换：当 `r2Key` / `token` 变化时（如灯箱左右切换）会重新加载对应图片。
  */
 export function CanvasImage({
 	r2Key,
@@ -42,6 +43,7 @@ export function CanvasImage({
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const imgRef = useRef<HTMLImageElement | null>(null);
 	const [loaded, setLoaded] = useState(false);
+	const [inView, setInView] = useState(false);
 
 	const draw = useCallback(() => {
 		const canvas = canvasRef.current;
@@ -71,46 +73,59 @@ export function CanvasImage({
 		ctx.drawImage(img, dx, dy, dw, dh);
 	}, [fit]);
 
-	const ensureImage = useCallback(async () => {
-		if (imgRef.current) {
-			draw();
-			return;
-		}
-		try {
-			const objUrl = await loadBlob(r2Key, buildImageUrl(r2Key, token));
-			const img = new Image();
-			img.onload = () => {
-				imgRef.current = img;
-				setLoaded(true);
-				draw();
-				onReady?.();
-			};
-			img.src = objUrl;
-		} catch {
-			// 加载失败静默：防盗页不应暴露后端报错细节。
-		}
-	}, [r2Key, token, draw, onReady]);
-
+	// 懒加载：进入视口才标记需要加载（网格场景节省流量）。仅触发一次。
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 		const io = new IntersectionObserver(
 			(entries) => {
 				if (entries.some((e) => e.isIntersecting)) {
-					void ensureImage();
+					setInView(true);
 					io.disconnect();
 				}
 			},
 			{ rootMargin: "200px" },
 		);
 		io.observe(canvas);
+		return () => io.disconnect();
+	}, []);
+
+	// 加载当前 r2Key 对应的图片；切图（r2Key/token 变化）时自动重载。
+	useEffect(() => {
+		if (!inView) return;
+		let cancelled = false;
+		setLoaded(false);
+		const img = new Image();
+		loadBlob(r2Key, buildImageUrl(r2Key, token))
+			.then((objUrl) => {
+				img.src = objUrl;
+				return new Promise<void>((resolve) => {
+					img.onload = () => resolve();
+				});
+			})
+			.then(() => {
+				if (cancelled) return;
+				imgRef.current = img;
+				setLoaded(true);
+				draw();
+				onReady?.();
+			})
+			.catch(() => {
+				// 加载失败静默：防盗页不应暴露后端报错细节。
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [r2Key, token, inView, draw, onReady]);
+
+	// 容器尺寸变化时按当前图片重绘（高清自适应）。
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
 		const ro = new ResizeObserver(() => draw());
 		ro.observe(canvas);
-		return () => {
-			io.disconnect();
-			ro.disconnect();
-		};
-	}, [ensureImage, draw]);
+		return () => ro.disconnect();
+	}, [draw]);
 
 	const stop = (e: React.SyntheticEvent) => {
 		e.preventDefault();

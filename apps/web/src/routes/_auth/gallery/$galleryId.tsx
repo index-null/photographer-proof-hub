@@ -15,7 +15,6 @@ import {
 	CheckCircle2,
 	Copy,
 	Download,
-	GripVertical,
 	ImageUp,
 	Link2,
 	Loader2,
@@ -31,6 +30,11 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
+import { PhotoCommentsDialog } from "@/components/photo-comments-dialog";
+import {
+	PhotoGridCard,
+	type PhotoSummaryComment,
+} from "@/components/photo-grid-card";
 import { uploadPreview } from "@/lib/upload";
 import { client, orpc } from "@/utils/orpc";
 import {
@@ -87,6 +91,37 @@ function GalleryDetail() {
 		() => orpc.photo.list.queryOptions({ input: { galleryId } }).queryKey,
 		[galleryId],
 	);
+
+	// 每张图的选片汇总：标星数 + 评论列表，供网格直接展示「标星/评论」情况。
+	const summaryQuery = useQuery(
+		orpc.photo.summary.queryOptions({ input: { galleryId } }),
+	);
+	const summaryMap = useMemo(() => {
+		const m = new Map<string, PhotoSummaryRow>();
+		for (const row of summaryQuery.data ?? []) m.set(row.photoId, row);
+		return m;
+	}, [summaryQuery.data]);
+
+	type PhotoSummaryRow = {
+		photoId: string;
+		originalFilename: string;
+		r2Key: string;
+		sortOrder: number;
+		starCount: number;
+		commentCount: number;
+		comments: PhotoSummaryComment[];
+	};
+
+	// 复制原图文件名，便于摄影师去网盘按名检索原图。
+	const copyFilename = useCallback((filename: string) => {
+		void navigator.clipboard?.writeText(filename);
+		toast.success("已复制文件名");
+	}, []);
+
+	const [commentsDialog, setCommentsDialog] = useState<{
+		filename: string;
+		comments: PhotoSummaryComment[];
+	} | null>(null);
 
 	// 水印配置：来自项目设置，缺失则回退默认。用 ref 避免在闭包中捕获过期值。
 	const watermarkRef = useRef<WatermarkConfig>(DEFAULT_WATERMARK);
@@ -412,55 +447,48 @@ function GalleryDetail() {
 					</p>
 				) : (
 					<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-						{ordered.map((p, i) => (
-							// biome-ignore lint/a11y/noStaticElementInteractions: 拖拽排序网格项含删除按钮，无法用原生 button，键盘 DnD 超出本迭代范围
-							<div
-								key={p.id}
-								draggable={!reorderPhotos.isPending}
-								onDragStart={() => handleDragStart(i)}
-								onDragOver={(e) => handleDragOver(e, i)}
-								onDrop={(e) => handleDrop(e, i)}
-								onDragEnd={handleDragEnd}
-								className={`group relative overflow-hidden rounded-none border bg-muted transition-opacity ${
-									dragIndex === i ? "opacity-40" : ""
-								} ${
-									dragOverIndex === i && dragIndex !== null && dragIndex !== i
-										? "ring-2 ring-primary ring-inset"
-										: ""
-								}`}
-							>
-								<img
+						{ordered.map((p, i) => {
+							const sum = summaryMap.get(p.id);
+							return (
+								<PhotoGridCard
+									key={p.id}
+									index={i}
 									src={ownerImageUrl(p.r2Key)}
-									alt={p.originalFilename}
-									loading="lazy"
-									draggable={false}
-									className="aspect-square w-full object-cover"
+									originalFilename={p.originalFilename}
+									starCount={sum?.starCount ?? 0}
+									commentCount={sum?.commentCount ?? 0}
+									isDragging={dragIndex === i}
+									isDragOver={
+										dragOverIndex === i && dragIndex !== null && dragIndex !== i
+									}
+									onDragStart={handleDragStart}
+									onDragOver={handleDragOver}
+									onDrop={handleDrop}
+									onDragEnd={handleDragEnd}
+									onCopy={copyFilename}
+									onDelete={() => {
+										if (window.confirm(`删除「${p.originalFilename}」？`)) {
+											deletePhoto.mutate(p.id);
+										}
+									}}
+									onShowComments={() =>
+										setCommentsDialog({
+											filename: p.originalFilename,
+											comments: sum?.comments ?? [],
+										})
+									}
 								/>
-								<span
-									className="absolute top-1 left-1 cursor-grab text-white/80 drop-shadow"
-									title="拖拽排序"
-								>
-									<GripVertical className="size-4" />
-								</span>
-								<div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/55 px-2 py-1 text-white text-xs">
-									<span className="truncate">{p.originalFilename}</span>
-									<button
-										type="button"
-										aria-label="删除图片"
-										className="shrink-0 hover:text-destructive"
-										onClick={() => {
-											if (window.confirm(`删除「${p.originalFilename}」？`)) {
-												deletePhoto.mutate(p.id);
-											}
-										}}
-									>
-										<Trash2 className="size-4" />
-									</button>
-								</div>
-							</div>
-						))}
+							);
+						})}
 					</div>
 				)}
+				{commentsDialog ? (
+					<PhotoCommentsDialog
+						filename={commentsDialog.filename}
+						comments={commentsDialog.comments}
+						onClose={() => setCommentsDialog(null)}
+					/>
+				) : null}
 			</section>
 
 			{/* 分享链接 */}

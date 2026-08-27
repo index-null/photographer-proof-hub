@@ -23,6 +23,16 @@ export type GuestGallery = {
 	watermark: unknown;
 };
 
+export type GuestComment = {
+	id: string;
+	shareLinkId: string;
+	photoId: string | null;
+	clientKey: string;
+	name: string | null;
+	content: string;
+	createdAt: Date;
+};
+
 /** 客户页状态机：从「校验」推进到「浏览」，或落到各失败状态页。 */
 export type GuestPhase =
 	| "init"

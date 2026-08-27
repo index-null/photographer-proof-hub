@@ -1,10 +1,11 @@
 import { ORPCError } from "@orpc/server";
+import { galleryComment } from "@photographer-proof-hub/db/schema/comment";
 import { gallery } from "@photographer-proof-hub/db/schema/gallery";
 import { photo } from "@photographer-proof-hub/db/schema/photo";
 import { shareLink } from "@photographer-proof-hub/db/schema/share_link";
 import { photoStar } from "@photographer-proof-hub/db/schema/star";
 import { env } from "@photographer-proof-hub/env/server";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../index";
 
@@ -106,6 +107,113 @@ export const photoRouter = {
 						b.starCount - a.starCount ||
 						a.originalFilename.localeCompare(b.originalFilename),
 				);
+		}),
+
+	/**
+	 * 每张图的选片汇总：标星数（按访客去重）+ 针对该图的评论列表。
+	 * 供摄影师在项目页直接查看「文件名 / 标星 / 评论」，快速定位需精修的图片。
+	 */
+	summary: protectedProcedure
+		.input(z.object({ galleryId: z.string().min(1) }))
+		.handler(async ({ context, input }) => {
+			const [owned] = await context.db
+				.select({ id: gallery.id })
+				.from(gallery)
+				.where(
+					and(
+						eq(gallery.id, input.galleryId),
+						eq(gallery.userId, context.session.user.id),
+					),
+				);
+			if (!owned) {
+				throw new ORPCError("NOT_FOUND", { message: "项目不存在" });
+			}
+
+			const photos = await context.db
+				.select({
+					id: photo.id,
+					originalFilename: photo.originalFilename,
+					r2Key: photo.r2Key,
+					sortOrder: photo.sortOrder,
+					createdAt: photo.createdAt,
+				})
+				.from(photo)
+				.where(eq(photo.galleryId, input.galleryId))
+				.orderBy(asc(photo.sortOrder), asc(photo.createdAt));
+
+			const stars = await context.db
+				.select({
+					photoId: photoStar.photoId,
+					clientKey: photoStar.clientKey,
+				})
+				.from(photoStar)
+				.innerJoin(shareLink, eq(photoStar.shareLinkId, shareLink.id))
+				.where(eq(shareLink.galleryId, input.galleryId));
+
+			const starKeysByPhoto = new Map<string, Set<string>>();
+			for (const s of stars) {
+				let keys = starKeysByPhoto.get(s.photoId);
+				if (!keys) {
+					keys = new Set();
+					starKeysByPhoto.set(s.photoId, keys);
+				}
+				keys.add(s.clientKey);
+			}
+
+			const rawComments = await context.db
+				.select({
+					id: galleryComment.id,
+					photoId: galleryComment.photoId,
+					name: galleryComment.name,
+					content: galleryComment.content,
+					clientKey: galleryComment.clientKey,
+					createdAt: galleryComment.createdAt,
+				})
+				.from(galleryComment)
+				.innerJoin(shareLink, eq(galleryComment.shareLinkId, shareLink.id))
+				.where(
+					and(
+						eq(shareLink.galleryId, input.galleryId),
+						isNotNull(galleryComment.photoId),
+					),
+				)
+				.orderBy(asc(galleryComment.createdAt));
+
+			const commentsByPhoto = new Map<
+				string,
+				{
+					id: string;
+					name: string | null;
+					content: string;
+					clientKey: string;
+					createdAt: Date;
+				}[]
+			>();
+			for (const c of rawComments) {
+				if (!c.photoId) continue;
+				let arr = commentsByPhoto.get(c.photoId);
+				if (!arr) {
+					arr = [];
+					commentsByPhoto.set(c.photoId, arr);
+				}
+				arr.push({
+					id: c.id,
+					name: c.name,
+					content: c.content,
+					clientKey: c.clientKey,
+					createdAt: c.createdAt,
+				});
+			}
+
+			return photos.map((p) => ({
+				photoId: p.id,
+				originalFilename: p.originalFilename,
+				r2Key: p.r2Key,
+				sortOrder: p.sortOrder,
+				starCount: starKeysByPhoto.get(p.id)?.size ?? 0,
+				commentCount: commentsByPhoto.get(p.id)?.length ?? 0,
+				comments: commentsByPhoto.get(p.id) ?? [],
+			}));
 		}),
 
 	/**

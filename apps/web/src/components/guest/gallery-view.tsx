@@ -1,43 +1,18 @@
 import { cn } from "@photographer-proof-hub/ui/lib/utils";
-import { Images, MessageSquare, Star } from "lucide-react";
-import { useState } from "react";
-
+import { useQuery } from "@tanstack/react-query";
+import { MessageSquare, Star } from "lucide-react";
+import { useMemo, useState } from "react";
+import { orpc } from "@/utils/orpc";
 import { CanvasImage } from "./canvas-image";
-import { CommentPanel } from "./comment-panel";
 import { Lightbox } from "./lightbox";
-import type { GuestGallery, GuestPhoto } from "./use-guest";
+import type { GuestComment, GuestGallery, GuestPhoto } from "./use-guest";
 
-function TabButton({
-	active,
-	onClick,
-	icon: Icon,
-	children,
-}: {
-	active: boolean;
-	onClick: () => void;
-	icon: typeof Images;
-	children: React.ReactNode;
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className={cn(
-				"flex flex-1 items-center justify-center gap-1.5 border-b-2 py-2 font-medium text-xs transition-colors",
-				active
-					? "border-primary text-foreground"
-					: "border-transparent text-muted-foreground hover:text-foreground",
-			)}
-		>
-			<Icon className="size-4" />
-			{children}
-		</button>
-	);
-}
+type ViewMode = "all" | "starred";
 
 /**
- * 客户浏览主页：照片网格（Canvas 渲染 + 标星）+ 留言面板 + 大图灯箱。
- * 移动端优先（375px 宽），桌面端自动放宽列数。
+ * 客户浏览主页：照片网格（Canvas 渲染 + 标星）+ 大图灯箱（按图评论）。
+ * 评论严格绑定到具体图片（无「整组留言」），移动端优先。
+ * 顶部支持「全部 / 已收藏」切换，灯箱内的导航随之在对应范围内循环。
  */
 export function GalleryView({
 	gallery,
@@ -54,12 +29,38 @@ export function GalleryView({
 	clientKey: string;
 	onToggleStar: (photoId: string, current: boolean) => Promise<boolean>;
 }) {
-	const [tab, setTab] = useState<"photos" | "comments">("photos");
-	const [lightbox, setLightbox] = useState<number | null>(null);
+	const [lightboxId, setLightboxId] = useState<string | null>(null);
+	const [view, setView] = useState<ViewMode>("all");
 	const starredCount = photos.filter((p) => p.starred).length;
+
+	// 当前视图下可见的照片（「已收藏」仅含标星项）。
+	const visiblePhotos = useMemo(
+		() => (view === "starred" ? photos.filter((p) => p.starred) : photos),
+		[view, photos],
+	);
+
+	// 拉取该链接下全部评论（含 photoId），按图分组后供网格徽标与灯箱展示。
+	const commentsQuery = useQuery(
+		orpc.guest.comments.queryOptions({ input: { slug, viewToken: token } }),
+	);
+	const commentsByPhoto = useMemo(() => {
+		const m = new Map<string, GuestComment[]>();
+		for (const c of (commentsQuery.data ?? []) as GuestComment[]) {
+			if (!c.photoId) continue;
+			let arr = m.get(c.photoId);
+			if (!arr) {
+				arr = [];
+				m.set(c.photoId, arr);
+			}
+			arr.push(c);
+		}
+		return m;
+	}, [commentsQuery.data]);
 
 	const handleStar = (photoId: string, current: boolean) =>
 		onToggleStar(photoId, current);
+
+	const refreshComments = () => commentsQuery.refetch();
 
 	return (
 		<div className="mx-auto flex min-h-full max-w-3xl flex-col">
@@ -80,40 +81,62 @@ export function GalleryView({
 						{starredCount}/{photos.length}
 					</div>
 				</div>
-				<div className="flex gap-1">
-					<TabButton
-						active={tab === "photos"}
-						onClick={() => setTab("photos")}
-						icon={Images}
-					>
-						照片
-					</TabButton>
-					<TabButton
-						active={tab === "comments"}
-						onClick={() => setTab("comments")}
-						icon={MessageSquare}
-					>
-						留言
-					</TabButton>
+
+				{/* 全部 / 已收藏 切换 */}
+				<div className="flex items-center gap-1.5 px-3 pb-2">
+					<div className="flex shrink-0 rounded-none border border-border p-0.5 text-xs">
+						<button
+							type="button"
+							onClick={() => setView("all")}
+							className={cn(
+								"rounded-none px-2.5 py-1 transition-colors",
+								view === "all"
+									? "bg-primary text-primary-foreground"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+						>
+							全部
+						</button>
+						<button
+							type="button"
+							onClick={() => setView("starred")}
+							className={cn(
+								"flex items-center gap-1 rounded-none px-2.5 py-1 transition-colors",
+								view === "starred"
+									? "bg-primary text-primary-foreground"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+						>
+							<Star
+								className={
+									view === "starred" ? "size-3.5 fill-current" : "size-3.5"
+								}
+							/>
+							已收藏 {starredCount}
+						</button>
+					</div>
 				</div>
 			</header>
 
 			<main className="flex-1">
-				{tab === "photos" ? (
-					photos.length === 0 ? (
-						<div className="py-16 text-center text-muted-foreground text-sm">
-							这个选片项目还没有照片。
-						</div>
-					) : (
-						<div className="grid grid-cols-2 gap-1.5 p-1.5 sm:grid-cols-3">
-							{photos.map((p, i) => (
+				{visiblePhotos.length === 0 ? (
+					<div className="py-16 text-center text-muted-foreground text-sm">
+						{view === "starred"
+							? "还没有收藏的照片，点击照片右上角的星标即可收藏。"
+							: "这个选片项目还没有照片。"}
+					</div>
+				) : (
+					<div className="grid grid-cols-2 gap-1.5 p-1.5 sm:grid-cols-3">
+						{visiblePhotos.map((p) => {
+							const count = commentsByPhoto.get(p.id)?.length ?? 0;
+							return (
 								<div
 									key={p.id}
 									className="group relative aspect-square overflow-hidden bg-muted"
 								>
 									<button
 										type="button"
-										onClick={() => setLightbox(i)}
+										onClick={() => setLightboxId(p.id)}
 										draggable={false}
 										aria-label={`查看 ${p.originalFilename}`}
 										className="block h-full w-full"
@@ -137,28 +160,31 @@ export function GalleryView({
 											}
 										/>
 									</button>
+									{count > 0 ? (
+										<span className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-none bg-black/55 px-1.5 py-0.5 text-white text-xs">
+											<MessageSquare className="size-3.5" />
+											{count}
+										</span>
+									) : null}
 								</div>
-							))}
-						</div>
-					)
-				) : (
-					<CommentPanel slug={slug} token={token} clientKey={clientKey} />
+							);
+						})}
+					</div>
 				)}
 			</main>
 
-			{lightbox !== null ? (
+			{lightboxId !== null ? (
 				<Lightbox
-					photos={photos}
-					index={lightbox}
+					photos={visiblePhotos}
+					initialId={lightboxId}
 					token={token}
 					slug={slug}
 					clientKey={clientKey}
-					onClose={() => setLightbox(null)}
-					onNavigate={(d) =>
-						setLightbox((prev) =>
-							prev === null ? prev : (prev + d + photos.length) % photos.length,
-						)
-					}
+					commentsByPhoto={commentsByPhoto}
+					view={view}
+					onViewChange={setView}
+					onCommentAdded={refreshComments}
+					onClose={() => setLightboxId(null)}
 					onStarred={handleStar}
 				/>
 			) : null}
