@@ -1,127 +1,133 @@
-# photographer-proof-hub
+<p align="center">
+  <img src="banner.png" alt="Photographer Proof Hub" width="960" />
+</p>
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Hono, ORPC, and more.
+<h1 align="center">Photographer Proof Hub</h1>
 
-## Features
+<p align="center">
+  <strong>摄影师选片与作品展示平台</strong> — 独立摄影师的轻量级 Gallery 管理系统，支持安全分享、防截图水印与客户选片工作流
+</p>
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Hono** - Lightweight, performant server framework
-- **oRPC** - End-to-end type-safe APIs with OpenAPI integration
-- **workers** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Biome** - Linting and formatting
-- **Turborepo** - Optimized monorepo build system
+<p align="center">
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/TanStack_Start-1.168-FF4154?logo=tanstack&logoColor=white" alt="TanStack Start" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/Hono-4-373769?logo=hono&logoColor=white" alt="Hono" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/oRPC-1.14-28A745?style=flat-square" alt="oRPC" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/Drizzle_ORM-0.45-F97B22?logo=drizzle&logoColor=white" alt="Drizzle ORM" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=supabase&logoColor=white" alt="PostgreSQL / Supabase" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/Better_Auth-1.6-000000?logo=auth0&logoColor=white" alt="Better-Auth" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/Cloudflare_Workers-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Workers" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/Bun-1.3-000000?logo=bun&logoColor=white" alt="Bun" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/Turborepo-2-FFC047?logo=turborepo&logoColor=black" alt="Turborepo" /></a>
+  <a href="#tech-stack"><img src="https://img.shields.io/badge/Biome-2-60A5FA?logo=biome&logoColor=black" alt="Biome" /></a>
+</p>
 
-## Getting Started
+---
 
-First, install the dependencies:
+## 核心能力
+
+| 模块 | 说明 |
+|------|------|
+| **Gallery 管理** | 创建、编辑、归档相册；支持 Collections 分组与排序 |
+| **照片上传** | 基于 Cloudflare R2 的图片存储，自动生成预览图 |
+| **安全分享** | View Token 机制 + 防盗链 + 客户端防截图策略 |
+| **水印系统** | 可配置文字/图片水印，客户端 Canvas 渲染 |
+| **互动反馈** | 星级评分、评论功能，支持导出数据 |
+| **SSR 前端** | TanStack Start 全栈渲染，首屏直出 |
+
+## Tech Stack
+
+<p align="center">
+  <img src="tech-stack.svg" alt="Tech Stack Architecture" width="720" />
+</p>
+
+## 快速开始
+
+> **前置要求**: [Bun](https://bun.sh/) >= 1.3, PostgreSQL 数据库
 
 ```bash
+# 安装依赖
 bun install
-```
 
-## Database Setup
+# 配置环境变量（数据库连接等）
+cp apps/server/.env.example apps/server/.env
 
-This project uses PostgreSQL with Drizzle ORM.
-
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
-
-3. Apply the schema to your database:
-
-```bash
+# 推送数据库 Schema
 bun run db:push
-```
 
-Then, run the development server:
-
-```bash
+# 启动开发服务
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+启动后：
+- Web 前端 → `http://localhost:3001`
+- API Server → `http://localhost:3000`
+- OpenAPI 文档 → `http://localhost:3000/openapi`
 
-## UI Customization
-
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
-
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
-
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
-
-```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
-```
-
-Import shared components like this:
-
-```tsx
-import { Button } from "@photographer-proof-hub/ui/components/button";
-```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Deployment
-
-### Alchemy
-
-- Target: web on Cloudflare + server on Cloudflare
-- Configure provider login: `cd packages/infra && bunx alchemy login --configure`
-- Dev: bun run dev
-- Deploy: bun run deploy
-- Destroy: bun run destroy
-
-`alchemy login --configure` stores the selected Cloudflare, Neon, PlanetScale, and/or Prisma provider profiles under `~/.alchemy`; no provider-specific setup command is required by this scaffold.
-
-Deploys are staged and default to a personal `dev_<username>` stage. For production, run the deploy with an explicit stage from `packages/infra`:
-
-```bash
-cd packages/infra && bunx alchemy deploy --stage production
-```
-
-### Production origins
-
-- Required after the first deploy: set `CORS_ORIGIN` in `apps/server/.env` to the exact deployed web origin, such as `https://app.example.com`, then deploy the server again.
-
-## Git Hooks and Formatting
-
-- Run checks: `bun run check`
-
-## Project Structure
+## 项目结构
 
 ```
 photographer-proof-hub/
 ├── apps/
-│   ├── web/         # Frontend application (React + TanStack Start)
-│   └── server/      # Backend API (Hono, ORPC)
+│   ├── web/                  # SSR 前端 (TanStack Start + Vite)
+│   │   ├── src/routes/       # 文件路由 (_auth, _guest, s/$slug)
+│   │   └── src/components/   # 业务组件 (gallery-view, access-gate...)
+│   └── server/               # 后端 API (Hono on Workers)
+│       ├── src/routes/       # 路由 (image, upload, owner-image)
+│       └── src/lib/          # R2 存储工具
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
+│   ├── ui/                   # 共享 shadcn/ui 组件库
+│   ├── api/                  # oRPC Router 定义 & 业务逻辑
+│   ├── auth/                 # Better-Auth 配置
+│   ├── db/                   # Drizzle Schema & Migration
+│   ├── env/                  # 环境变量校验 (Zod)
+│   ├── config/               # 共享 TSConfig
+│   └── infra/                # Alchemy 部署配置
 ```
 
-## Available Scripts
+## 常用命令
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:server`: Start only the server
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
-- `bun run check`: Run Biome formatting and linting
+| 命令 | 用途 |
+|------|------|
+| `bun run dev` | 启动全栈开发环境 |
+| `bun run dev:web` | 仅启动前端 |
+| `bun run dev:server` | 仅启动后端 |
+| `bun run build` | 构建所有包 |
+| `bun run check-types` | 全量类型检查 |
+| `bun run check` | Biome lint + format |
+| `bun run db:push` | 推送 Schema 到数据库 |
+| `bun run db:studio` | 打开 Drizzle Studio |
+| `bun run db:migrate` | 执行迁移 |
+| `bun run deploy` | 部署到 Cloudflare (Alchemy) |
+
+## 部署
+
+项目使用 [Alchemy](https://alchemy.dev) 进行 Cloudflare Workers 一键部署：
+
+```bash
+# 登录并配置 Provider
+cd packages/infra && bunx alchemy login --configure
+
+# 开发预览
+bun run dev
+
+# 部署 (默认 dev stage)
+bun run deploy
+
+# 生产部署
+cd packages/infra && bunx alchemy deploy --stage production
+```
+
+> [!NOTE]
+> 首次部署后需在 `apps/server/.env` 中设置 `CORS_ORIGIN` 为实际域名。
+
+## 开发规范
+
+- **Lint / Format**: [Biome](https://biomejs.dev) — `bun run check` 自动修复
+- **Git Hooks**: [Lefthook](https://github.com/evilmartians/lefthook) — pre-commit 自动格式化 staged 文件
+- **UI 组件**: 共享组件位于 `packages/ui`，通过 shadcn CLI 扩展:
+  ```bash
+  npx shadcn@latest add <component> -c packages/ui
+  ```

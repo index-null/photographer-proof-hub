@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="web" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="server" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="pkg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="infra" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="960" height="540" rx="16" fill="url(#bg)"/>
+
+  <!-- Title -->
+  <text x="40" y="46" fill="#f8fafc" font-size="24" font-weight="700">Tech Stack — Monorepo Architecture</text>
+  <text x="40" y="70" fill="#94a3b8" font-size="13">Turborepo · Cloudflare Workers · Supabase Postgres · R2 Storage</text>
+
+  <!-- Monorepo container -->
+  <rect x="30" y="92" width="900" height="418" rx="12" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="44" y="112" fill="#64748b" font-size="12" font-weight="600" letter-spacing="1">PHOTOGRAPHER-PROOF-HUB</text>
+
+  <!-- apps/web -->
+  <g>
+    <rect x="58" y="140" width="240" height="150" rx="10" fill="url(#web)"/>
+    <text x="178" y="168" fill="#0c1a2b" font-size="17" font-weight="700" text-anchor="middle">apps / web</text>
+    <text x="178" y="192" fill="#0c1a2b" font-size="12" text-anchor="middle" font-weight="600">TanStack Start</text>
+    <text x="178" y="212" fill="#0c2a40" font-size="12" text-anchor="middle">React 19 · Vite 8</text>
+    <text x="178" y="232" fill="#0c2a40" font-size="12" text-anchor="middle">TailwindCSS 4</text>
+    <text x="178" y="252" fill="#0c2a40" font-size="12" text-anchor="middle">TanStack Router</text>
+    <text x="178" y="272" fill="#0c2a40" font-size="12" text-anchor="middle">SSR · :3001</text>
+  </g>
+
+  <!-- apps/server -->
+  <g>
+    <rect x="58" y="320" width="240" height="150" rx="10" fill="url(#server)"/>
+    <text x="178" y="348" fill="#1a0b2e" font-size="17" font-weight="700" text-anchor="middle">apps / server</text>
+    <text x="178" y="372" fill="#1a0b2e" font-size="12" text-anchor="middle" font-weight="600">Hono</text>
+    <text x="178" y="392" fill="#2a0b40" font-size="12" text-anchor="middle">oRPC Router</text>
+    <text x="178" y="412" fill="#2a0b40" font-size="12" text-anchor="middle">Better-Auth</text>
+    <text x="178" y="432" fill="#2a0b40" font-size="12" text-anchor="middle">Drizzle ORM</text>
+    <text x="178" y="452" fill="#2a0b40" font-size="12" text-anchor="middle">:3000 / OpenAPI</text>
+  </g>
+
+  <!-- packages -->
+  <g>
+    <rect x="358" y="200" width="300" height="240" rx="10" fill="url(#pkg)"/>
+    <text x="508" y="228" fill="#04231a" font-size="17" font-weight="700" text-anchor="middle">packages /*</text>
+    <text x="508" y="256" fill="#04231a" font-size="12" text-anchor="middle" font-weight="600">ui · api · auth</text>
+    <text x="508" y="278" fill="#06362a" font-size="12" text-anchor="middle">db · env · config</text>
+    <text x="508" y="300" fill="#06362a" font-size="12" text-anchor="middle">infra</text>
+    <text x="508" y="330" fill="#04231a" font-size="11" text-anchor="middle" font-weight="600">shared shadcn/ui · oRPC</text>
+    <text x="508" y="348" fill="#06362a" font-size="11" text-anchor="middle">contracts · schema · zod env</text>
+    <text x="508" y="384" fill="#04231a" font-size="11" text-anchor="middle" font-weight="600">runtime &amp; platform</text>
+    <text x="508" y="402" fill="#06362a" font-size="11" text-anchor="middle">Cloudflare Workers</text>
+    <text x="508" y="420" fill="#06362a" font-size="11" text-anchor="middle">R2 · Supabase PG</text>
+  </g>
+
+  <!-- infra / deploy column -->
+  <g>
+    <rect x="708" y="140" width="200" height="330" rx="10" fill="url(#infra)"/>
+    <text x="808" y="168" fill="#3a2600" font-size="17" font-weight="700" text-anchor="middle">Deploy</text>
+    <text x="808" y="196" fill="#3a2600" font-size="12" text-anchor="middle" font-weight="600">Alchemy</text>
+    <text x="808" y="220" fill="#4a3300" font-size="12" text-anchor="middle">Cloudflare Workers</text>
+    <line x1="728" y1="244" x2="888" y2="244" stroke="#3a2600" stroke-width="1" opacity="0.4"/>
+    <text x="808" y="274" fill="#3a2600" font-size="12" text-anchor="middle">web → CF Pages</text>
+    <text x="808" y="298" fill="#3a2600" font-size="12" text-anchor="middle">server → CF Workers</text>
+    <text x="808" y="322" fill="#3a2600" font-size="12" text-anchor="middle">DB → Supabase</text>
+    <text x="808" y="346" fill="#3a2600" font-size="12" text-anchor="middle">Assets → R2</text>
+    <text x="808" y="378" fill="#3a2600" font-size="11" text-anchor="middle" font-weight="600">DX</text>
+    <text x="808" y="400" fill="#4a3300" font-size="11" text-anchor="middle">Bun · Turborepo</text>
+    <text x="808" y="420" fill="#4a3300" font-size="11" text-anchor="middle">Biome · Lefthook</text>
+    <text x="808" y="440" fill="#4a3300" font-size="11" text-anchor="middle">TypeScript 6</text>
+  </g>
+
+  <!-- arrows web<->server -->
+  <g stroke="#e2e8f0" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
+    <path d="M298,215 H358"/>
+    <path d="M298,395 H358"/>
+  </g>
+  <!-- web->deploy -->
+  <g stroke="#e2e8f0" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
+    <path d="M298,160 C480,120 600,140 708,180" opacity="0.7"/>
+    <path d="M298,300 C520,460 620,440 708,440" opacity="0.7"/>
+  </g>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#e2e8f0"/>
+    </marker>
+  </defs>
+
+  <text x="328" y="208" fill="#cbd5e1" font-size="11" font-weight="600">oRPC</text>
+  <text x="328" y="388" fill="#cbd5e1" font-size="11" font-weight="600">oRPC</text>
+</svg>
